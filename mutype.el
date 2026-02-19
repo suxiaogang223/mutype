@@ -84,14 +84,19 @@ Set to 0 for unlimited sessions."
 (defconst mutype--zone-symbols ["·" ":" "*" "●"]
   "Display symbols by zone level.")
 
-(defconst mutype--guidance-by-level
+(defcustom mutype-guidance-by-level
   ["settle in" "steady breath" "keep steady" "deep flow"]
-  "HUD guidance text by zone level.")
+  "HUD guidance text by zone level 0-3."
+  :type '(vector string string string string)
+  :group 'mutype)
 
-(defconst mutype--builtin-texts
+(defcustom mutype-builtin-texts
   '(("Quiet Shore" . "Each key falls like a small drop on still water. Keep your hands relaxed, keep your breathing easy, and let attention return to the next character without force.")
     ("Mountain Path" . "You do not need to rush this line. Walk through it one step at a time, steady and quiet, and allow rhythm to carry the mind into a clear and simple focus."))
-  "Built-in practice texts.")
+  "Built-in practice texts for interactive source selection."
+  :type '(repeat (cons (string :tag "Title")
+                       (string :tag "Text")))
+  :group 'mutype)
 
 (cl-defstruct mutype-session
   id
@@ -193,7 +198,32 @@ Set to 0 for unlimited sessions."
 
 (defun mutype--guidance-text (level)
   "Return guidance text for LEVEL."
-  (aref mutype--guidance-by-level (mutype--clamp level 0 3)))
+  (aref mutype-guidance-by-level (mutype--clamp level 0 3)))
+
+(defun mutype--builtin-text-names ()
+  "Return display names for built-in texts."
+  (mapcar #'car mutype-builtin-texts))
+
+(defun mutype--source-from-builtin (name)
+  "Return source plist for built-in text NAME."
+  (let ((text (cdr (assoc name mutype-builtin-texts))))
+    (unless text
+      (user-error "Builtin text not found: %s" name))
+    (list :type 'builtin :label name :text text)))
+
+(defun mutype--source-from-buffer (&optional buffer)
+  "Return source plist from BUFFER.
+BUFFER defaults to current buffer."
+  (with-current-buffer (or buffer (current-buffer))
+    (list :type 'buffer
+          :label (buffer-name)
+          :text (buffer-substring-no-properties (point-min) (point-max)))))
+
+(defun mutype--source-from-file (file-path)
+  "Return source plist from FILE-PATH."
+  (list :type 'file
+        :label (abbreviate-file-name file-path)
+        :text (mutype--read-file-text file-path)))
 
 (defun mutype--format-clock (seconds)
   "Format SECONDS as MM:SS."
@@ -250,19 +280,17 @@ Return 0 for unlimited duration."
                                  nil t nil nil "builtin")))
     (pcase choice
       ("builtin"
-       (let* ((name (completing-read "Builtin text: "
-                                     (mapcar #'car mutype--builtin-texts)
-                                     nil t))
-              (text (cdr (assoc name mutype--builtin-texts))))
-         (list :type 'builtin :label name :text text)))
+       (unless mutype-builtin-texts
+         (user-error "No built-in texts configured"))
+       (mutype--source-from-builtin
+        (completing-read "Builtin text: "
+                         (mutype--builtin-text-names)
+                         nil t)))
       ("current-buffer"
-       (list :type 'buffer
-             :label (buffer-name)
-             :text (buffer-substring-no-properties (point-min) (point-max))))
+       (mutype--source-from-buffer))
       ("file"
-       (let* ((file (read-file-name "Text file: " nil nil t))
-              (text (mutype--read-file-text file)))
-         (list :type 'file :label (abbreviate-file-name file) :text text)))
+       (mutype--source-from-file
+        (read-file-name "Text file: " nil nil t)))
       (_
        (user-error "Unsupported text source: %s" choice)))))
 
@@ -274,8 +302,9 @@ Return 0 for unlimited duration."
 
 (defun mutype--default-source ()
   "Return the default source plist."
-  (let ((item (car mutype--builtin-texts)))
-    (list :type 'builtin :label (car item) :text (cdr item))))
+  (unless mutype-builtin-texts
+    (user-error "No built-in texts configured"))
+  (mutype--source-from-builtin (caar mutype-builtin-texts)))
 
 (defun mutype--normalize-text (text)
   "Normalize source TEXT and validate minimum length."
@@ -401,7 +430,7 @@ When ERROR is non-nil, combine current and error faces."
       (mutype--set-char-face session index 'mutype-done-face)
       (setq index (1+ index)))
      ((eq mode 'flow)
-      (mutype--set-char-face session index 'mutype-error-face)
+      (mutype--set-char-face session index '(mutype-done-face mutype-error-face))
       (setq index (1+ index)))
      (t
       (mutype--mark-current-char session t)))
