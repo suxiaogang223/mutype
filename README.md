@@ -1,16 +1,22 @@
 # MuType
 
 ```text
- __  __      _______        _
-|  \/  |    |__   __|      | |
-| \  / |_   _  | |_   _ ___| |_
-| |\/| | | | | | | | | / __| __|
-| |  | | |_| | | | |_| \__ \ |_
-|_|  |_|\__,_| |_|\__,_|___/\__|
+M u T y p e
+     .
+   .   .
+     .
 ```
 
 MuType is a minimal typing practice plugin for Emacs.  
 It is designed for calm rhythm, low-distraction focus, and steady flow.
+
+## Name Meaning
+
+`MuType` means "type into stillness."
+
+- `Mu` references quietness and emptiness in a Zen context.
+- `Type` is the physical practice of keystrokes.
+- Together, the name emphasizes attention to the current character, not speed competition.
 
 ## Features
 
