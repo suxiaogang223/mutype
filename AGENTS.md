@@ -1,28 +1,46 @@
-# AGENTS.md
+# Repository Guidelines
 
-This file defines the default collaboration conventions for the MuType repository.
+## Project Structure & Module Organization
 
-## Goals
+MuType is currently a small Emacs Lisp project with an MVP layout:
 
-- Keep implementation aligned with the product design specification.
-- Prioritize readability, maintainability, and testability.
-- Implement features in Emacs Lisp with minimal dependencies.
+- `mutype.el`: main package entry and core logic (session state, input handling, HUD, zone scoring, reporting).
+- `test/mutype-test.el`: ERT test suite for core behavior.
+- `README.md`: user-facing setup and usage guide.
 
-## Code Conventions
+Keep feature code in `mutype.el` until a clear module split is introduced. If you split modules later, keep file names aligned with responsibilities (for example `mutype-zone.el`, `mutype-render.el`).
 
-- Target version: Emacs 27+
-- Prefer `cl-defstruct`, `defcustom`, and `define-minor-mode`
-- Use the `mutype-` prefix for public functions
-- Add ERT tests for new behavior whenever practical
+## Build, Test, and Development Commands
 
-## Commit Conventions
+- `emacs --batch -Q -L . --eval "(progn (load \"mutype.el\") (message \"ok\"))"`: sanity-load check.
+- `emacs --batch -Q --eval "(byte-compile-file \"mutype.el\")"`: byte-compile check for syntax/warnings.
+- `emacs --batch -Q -L . -L test -l test/mutype-test.el -f ert-run-tests-batch-and-exit`: run all tests.
 
-- Use imperative commit messages focused on one logical change
-- Do not mix unrelated refactors with feature changes in one commit
-- Run at least one basic load or test check before committing
+Run load and test commands before opening a PR.
 
-## Documentation Conventions
+## Coding Style & Naming Conventions
 
-- Keep README content user-facing
-- Keep design/implementation docs developer-facing
-- Record key design decisions in documentation
+- Language: Emacs Lisp (target Emacs 27+), `lexical-binding` enabled.
+- Indentation: follow standard Emacs Lisp style (2-space indentation, aligned forms).
+- Naming:
+  - Public symbols: `mutype-*`
+  - Internal helpers: `mutype--*`
+- Keep comments and documentation in English.
+- Prefer small, focused functions and avoid adding external dependencies.
+
+## Testing Guidelines
+
+- Framework: ERT.
+- Test files should live under `test/` and use `*-test.el` suffix.
+- Test names should describe behavior, e.g. `mutype-flow-advances-on-error`.
+- Add or update tests for any change in input logic, zone scoring, session state, or reporting output.
+
+## Commit & Pull Request Guidelines
+
+- Use imperative commit messages, consistent with existing history (example: `Initialize MuType MVP`).
+- Keep one logical change per commit.
+- PRs should include:
+  - What changed and why.
+  - How it was tested (exact commands).
+  - Any user-visible behavior change (HUD, commands, workflow).
+- Link related issues when available.

@@ -1,66 +1,82 @@
-# MuType
+# WuType
 
-MuType is a minimal typing practice plugin for Emacs, designed to help users enter focus and flow through a steady rhythm.
+```text
+__        __  _   _  _____ __   _______  ______
+\ \      / / | | | ||_   _|\ \ / /  __ \|  ____|
+ \ \ /\ / /  | | | |  | |   \ V /| |__) | |__
+  \ V  V /   | |_| |  | |    | | |  ___/|  __|
+   \_/\_/     \___/   |_|    |_| |_|    |_____|
+```
 
-## Project Status
+WuType is a minimal typing practice experience for Emacs, focused on rhythm, attention, and flow.  
+Current package/command namespace in code is `mutype-*`.
 
-- Current phase: MVP implemented
-- Target platform: Emacs 27+
-- Tech stack: Emacs Lisp (pure implementation)
+## Features
 
-## Implemented Features
-
-- `Flow` mode: mistakes do not block progress
-- `Precision` mode: correct input is required to advance
+- Two practice modes:
+  - `flow`: mistakes do not block progress
+  - `precision`: correct input is required to advance
 - Real-time HUD with zone symbol, timer, and guidance text
-- Zone scoring based on recent error rate and rhythm stability
-- Session lifecycle: start, pause/resume, stop, auto-finish
-- Session report with accuracy, CPM, average interval, and zone stats
-- Multiple text sources: built-in text / current buffer / file
+- Zone scoring based on recent error rate and interval stability
+- Session report with accuracy, CPM, interval, and zone summary
+- Text sources: built-in text, current buffer, or a file
 
-## Quick Start
+## Requirements
 
-Add MuType to your Emacs load path and require it:
+- Emacs 27+
+- No external runtime dependencies
+
+## How To Use
+
+1. Add this repository to your Emacs load path and require the package:
 
 ```elisp
 (add-to-list 'load-path "/path/to/mutype")
 (require 'mutype)
 ```
 
-Start a session:
+2. Start a session:
 
 - `M-x mutype-mode`
 
-You will be prompted for:
-
-- Mode (`flow` or `precision`)
-- Duration (minutes, `0` for unlimited)
-- Text source (`builtin`, `current-buffer`, or `file`)
-
-## Commands
-
-- `M-x mutype-mode`: start a session
-- `M-x mutype-stop`: stop the current session
-- `M-x mutype-pause`: pause the current session
-- `M-x mutype-resume`: resume a paused session
-- `M-x mutype-toggle-pause`: toggle pause state
-- `M-x mutype-report-last-session`: show the latest report
-
-## Training Buffer Keys
+3. During training:
 
 - `C-c C-p`: pause/resume
-- `C-c C-q`: stop session
-- `C-g`: stop session
+- `C-c C-q`: stop
+- `C-g`: stop
 
-## Tests
+4. Useful commands:
 
-Run ERT tests in batch mode:
+- `M-x mutype-stop`
+- `M-x mutype-pause`
+- `M-x mutype-resume`
+- `M-x mutype-toggle-pause`
+- `M-x mutype-report-last-session`
 
-```bash
-emacs --batch -Q -L . -L test -l test/mutype-test.el -f ert-run-tests-batch-and-exit
-```
+## Development Guide
 
-## Project Layout
+### Project Layout
 
-- `mutype.el`: core implementation (MVP)
+- `mutype.el`: core implementation (session, input, HUD, zone, report)
 - `test/mutype-test.el`: ERT tests
+- `AGENTS.md`: contributor guide and collaboration rules
+
+### Development Commands
+
+- Load check:
+  - `emacs --batch -Q -L . --eval "(progn (load \"mutype.el\") (message \"ok\"))"`
+- Byte-compile check:
+  - `emacs --batch -Q --eval "(byte-compile-file \"mutype.el\")"`
+- Test:
+  - `emacs --batch -Q -L . -L test -l test/mutype-test.el -f ert-run-tests-batch-and-exit`
+
+### Coding Conventions
+
+- Keep documentation and code comments in English.
+- Use `mutype-*` for public symbols and `mutype--*` for internal helpers.
+- Keep functions focused and add tests for behavior changes.
+- Target Emacs Lisp style with lexical binding and standard indentation.
+
+## Status
+
+MVP is implemented and testable. Further iterations can split modules (`mutype-zone.el`, `mutype-render.el`, etc.) as complexity grows.
