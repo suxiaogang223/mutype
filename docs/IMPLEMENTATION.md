@@ -26,7 +26,7 @@ The package is implemented in pure Emacs Lisp for Emacs 27+.
    - default interactive behavior uses quick-start defaults
    - use `mutype-mode-custom` (or prefix arg) for full prompts
 2. `mutype--dispatch-input` routes typing keys to `mutype--handle-input`.
-3. `mutype--tick` refreshes HUD and enforces time-limit/buffer-close termination.
+3. `mutype--tick` refreshes mode line status and enforces time-limit/buffer-close termination.
 4. `mutype--finish-session` finalizes, cancels timer, builds report, and shows report buffer.
 
 Pause/resume is implemented by moving `start-time` forward during resume so paused duration is excluded from elapsed time.
@@ -38,7 +38,7 @@ Pause/resume is implemented by moving `start-time` forward during resume so paus
 - `visual-line-mode` enabled
 - `truncate-lines` disabled
 - `word-wrap` enabled
-- hidden mode line for a minimal HUD-first layout
+- dedicated MuType mode line (buffer-local)
 
 Input and control mapping:
 
@@ -55,6 +55,32 @@ processing input.
 Backtrack rule: `mutype--backtrack-input` moves one step back for retyping and
 restores character faces for that position. Session counters and event history
 remain raw keystroke history (no retroactive metric rewrite).
+
+## Mode Line Status Rendering
+
+MuType renders training HUD information in `mode-line-format` only. `header-line-format`
+is disabled in the training buffer.
+
+Rendered fields:
+
+- zone symbol
+- timer (remaining for limited sessions, elapsed for unlimited)
+- state (`running`/`paused`)
+- progress (`index/length`)
+- accuracy (`correct/total`; `--` when `total=0`)
+
+Narrow-window fallback is priority-based:
+
+1. drop `accuracy`
+2. then drop `progress`
+3. keep `zone + timer + state` as minimum
+
+Implementation helpers:
+
+- `mutype--build-mode-line-segments`
+- `mutype--fit-mode-line-segments`
+- `mutype--format-accuracy`
+- `mutype--render-mode-line`
 
 ## Source Handling
 
@@ -107,7 +133,7 @@ Computation:
 ## Acceptance Mapping
 
 - Mode switching: `mutype-mode-starts-with-selected-mode`
-- Real-time HUD update: `mutype-hud-shows-zone-and-paused-status`
+- Mode line status update: `mutype-hud-shows-mode-line-status`
 - Non-blocking error feedback in flow mode: `mutype-flow-advances-on-error`
 - Source switching: `mutype-source-switching`
 

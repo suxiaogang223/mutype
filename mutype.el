@@ -151,6 +151,9 @@ When nil, `mutype-mode' starts immediately using defaults."
 (defvar mutype--last-report nil
   "Most recent MuType report plist.")
 
+(defvar-local mutype--mode-line-status ""
+  "Cached MuType status string rendered in mode line.")
+
 (defvar mutype-training-mode-map
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-q") #'mutype-stop)
@@ -168,7 +171,9 @@ When nil, `mutype-mode' starts immediately using defaults."
   (setq-local cursor-type nil)
   (setq-local truncate-lines nil)
   (setq-local word-wrap t)
-  (setq-local mode-line-format nil)
+  (setq-local mode-line-format
+              '(" " (:eval (or mutype--mode-line-status "")) " "))
+  (setq-local header-line-format nil)
   (setq-local buffer-undo-list t)
   (visual-line-mode 1))
 
@@ -382,29 +387,74 @@ When ERROR is non-nil, combine current and error faces."
         (goto-char (+ (point-min)
                       (mutype-session-index session)))))))
 
-(defun mutype--update-hud (session)
-  "Render HUD for SESSION."
+(defun mutype--format-accuracy (correct total)
+  "Format accuracy from CORRECT and TOTAL counts."
+  (if (> total 0)
+      (format "%.1f%%" (* 100.0 (/ (float correct) total)))
+    "--"))
+
+(defun mutype--build-mode-line-segments (session)
+  "Return an alist of mode line segments for SESSION."
+  (let* ((elapsed (mutype--session-elapsed session))
+         (time-str (if (mutype-session-duration-limit session)
+                       (mutype--format-clock
+                        (- (mutype-session-duration-limit session) elapsed))
+                     (mutype--format-clock elapsed)))
+         (status (pcase (mutype-session-state session)
+                   ('paused "paused")
+                   ('running "running")
+                   (_ (symbol-name (mutype-session-state session)))))
+         (progress (format "p:%d/%d"
+                           (mutype-session-index session)
+                           (mutype-session-length session)))
+         (accuracy (format "acc:%s"
+                           (mutype--format-accuracy
+                            (mutype-session-correct-count session)
+                            (mutype-session-total-count session)))))
+    `((core . ,(format "%s %s %s"
+                       (mutype--zone-symbol (mutype-session-zone-level session))
+                       time-str
+                       status))
+      (progress . ,progress)
+      (accuracy . ,accuracy))))
+
+(defun mutype--fit-mode-line-segments (segments max-width)
+  "Fit SEGMENTS into MAX-WIDTH using priority-based fallback."
+  (let* ((core (alist-get 'core segments))
+         (progress (alist-get 'progress segments))
+         (accuracy (alist-get 'accuracy segments))
+         (parts (delq nil (list core progress accuracy)))
+         (line (string-join parts "  ")))
+    (when (> (string-width line) max-width)
+      (setq accuracy nil
+            parts (delq nil (list core progress accuracy))
+            line (string-join parts "  ")))
+    (when (> (string-width line) max-width)
+      (setq progress nil
+            parts (delq nil (list core progress accuracy))
+            line (string-join parts "  ")))
+    (if (> (string-width line) max-width)
+        core
+      line)))
+
+(defun mutype--render-mode-line (session)
+  "Render SESSION status into training buffer mode line."
   (let ((buffer (mutype-session-buffer session)))
     (when (buffer-live-p buffer)
-      (let* ((elapsed (mutype--session-elapsed session))
-             (time-str (if (mutype-session-duration-limit session)
-                           (mutype--format-clock
-                            (- (mutype-session-duration-limit session) elapsed))
-                         (mutype--format-clock elapsed)))
-             (zone-level (mutype-session-zone-level session))
-             (status (pcase (mutype-session-state session)
-                       ('paused "paused")
-                       (_ nil)))
-             (guidance (and mutype-enable-guidance-text
-                            (mutype--guidance-text zone-level)))
-             (hud-line (string-join
-                        (delq nil (list (mutype--zone-symbol zone-level)
-                                        time-str
-                                        guidance
-                                        status))
-                        "  ")))
+      (let* ((window (get-buffer-window buffer t))
+             (width (if (window-live-p window)
+                        (window-total-width window)
+                      (frame-width)))
+             (segments (mutype--build-mode-line-segments session))
+             (line (mutype--fit-mode-line-segments segments (max 10 width))))
         (with-current-buffer buffer
-          (setq-local header-line-format hud-line))))))
+          (setq-local header-line-format nil)
+          (setq-local mutype--mode-line-status line)
+          (force-mode-line-update))))))
+
+(defun mutype--update-hud (session)
+  "Render HUD for SESSION."
+  (mutype--render-mode-line session))
 
 (defun mutype--update-zone (session error-bit interval)
   "Update SESSION zone metrics with ERROR-BIT and INTERVAL."
@@ -537,7 +587,7 @@ When ERROR is non-nil, combine current and error faces."
         (insert text)
         (add-text-properties (point-min) (point-max) '(face mutype-pending-face))
         (mutype-training-mode))
-      (setq-local header-line-format ""))
+      (setq-local header-line-format nil))
     (setf (mutype-session-buffer session) buffer)
     (mutype--mark-current-char session)
     (mutype--goto-index session)

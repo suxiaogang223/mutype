@@ -23,10 +23,11 @@ It is designed for calm rhythm, low-distraction focus, and steady flow.
 - Two modes:
   - `flow`: mistakes do not block progress.
   - `precision`: correct input is required to move forward.
-- Real-time HUD:
+- Real-time mode line status:
   - zone symbol (`·`, `:`, `*`, `●`)
   - timer
-  - guidance text
+  - running/paused state
+  - progress and accuracy
 - Zone scoring from recent error rate and key-interval stability.
 - Session report with accuracy, CPM, interval, and zone metrics.
 - Training buffer is text-mode based with soft wrapping.
@@ -145,8 +146,8 @@ To add training content, create a new `.txt` file in the source directory.
 
 - Mode behavior works:
   - `mutype-mode-starts-with-selected-mode`
-- HUD updates in session:
-  - `mutype-hud-shows-zone-and-paused-status`
+- Mode line status updates in session:
+  - `mutype-hud-shows-mode-line-status`
 - Error feedback is non-blocking in flow mode:
   - `mutype-flow-advances-on-error`
 - Text source switching works:

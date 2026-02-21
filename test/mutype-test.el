@@ -115,7 +115,9 @@ ENTRIES is a list of (FILENAME . TEXT)."
     (should (derived-mode-p 'text-mode))
     (should (null truncate-lines))
     (should word-wrap)
-    (should (bound-and-true-p visual-line-mode))))
+    (should (bound-and-true-p visual-line-mode))
+    (should mode-line-format)
+    (should (null header-line-format))))
 
 (ert-deftest mutype-training-mode-keymap-remaps-input-and-backtrack ()
   (with-temp-buffer
@@ -290,22 +292,53 @@ ENTRIES is a list of (FILENAME . TEXT)."
         (mutype-test--cleanup-session mutype--current-session))
       (setq mutype--current-session nil))))
 
-(ert-deftest mutype-hud-shows-zone-and-paused-status ()
-  "Acceptance: HUD updates with zone symbol and paused marker."
+(ert-deftest mutype-hud-shows-mode-line-status ()
+  "Acceptance: HUD updates the MuType mode line status."
   (let* ((session (mutype-test--make-session
                    :state 'paused
+                   :text "abcdefghij"
                    :zone-level 2
+                   :index 7
                    :start-time (- (float-time) 12)
                    :duration-limit 180)))
     (unwind-protect
         (progn
+          (setf (mutype-session-correct-count session) 8
+                (mutype-session-total-count session) 10)
           (mutype--update-hud session)
           (with-current-buffer (mutype-session-buffer session)
-            (let ((hud header-line-format))
+            (let ((hud mutype--mode-line-status))
               (should (stringp hud))
               (should (string-match-p "\\*" hud))
-              (should (string-match-p "paused" hud)))))
+              (should (string-match-p "paused" hud))
+              (should (string-match-p "p:7/10" hud))
+              (should (string-match-p "acc:80\\.0%" hud))
+              (should (null header-line-format)))))
       (mutype-test--cleanup-session session))))
+
+(ert-deftest mutype-hud-uses-accuracy-placeholder-at-zero-input ()
+  (let* ((session (mutype-test--make-session :mode 'flow :text "abcde")))
+    (unwind-protect
+        (progn
+          (mutype--update-hud session)
+          (with-current-buffer (mutype-session-buffer session)
+            (should (string-match-p "acc:--" mutype--mode-line-status))))
+      (mutype-test--cleanup-session session))))
+
+(ert-deftest mutype-fit-mode-line-segments-drops-lower-priority-fields ()
+  (let ((segments '((core . "● 03:21 paused")
+                    (progress . "p:120/800")
+                    (accuracy . "acc:97.3%"))))
+    (should (string-match-p "acc:97\\.3%"
+                            (mutype--fit-mode-line-segments segments 80)))
+    (let ((compact (mutype--fit-mode-line-segments segments 26)))
+      (should (string-match-p "p:120/800" compact))
+      (should-not (string-match-p "acc:97\\.3%" compact)))
+    (let ((minimal (mutype--fit-mode-line-segments segments 13)))
+      (should (string-match-p "03:21" minimal))
+      (should (string-match-p "paused" minimal))
+      (should-not (string-match-p "p:120/800" minimal))
+      (should-not (string-match-p "acc:97\\.3%" minimal)))))
 
 (ert-deftest mutype-source-switching ()
   "Acceptance: source directory loading works."
