@@ -25,11 +25,36 @@ The package is implemented in pure Emacs Lisp for Emacs 27+.
 1. `mutype-mode` creates a session and opens `*MuType*`.
    - default interactive behavior uses quick-start defaults
    - use `mutype-mode-custom` (or prefix arg) for full prompts
-2. `mutype--dispatch-input` routes keypresses to `mutype--handle-input`.
+2. `mutype--dispatch-input` routes typing keys to `mutype--handle-input`.
 3. `mutype--tick` refreshes HUD and enforces time-limit/buffer-close termination.
 4. `mutype--finish-session` finalizes, cancels timer, builds report, and shows report buffer.
 
 Pause/resume is implemented by moving `start-time` forward during resume so paused duration is excluded from elapsed time.
+
+## Training Buffer Behavior
+
+`mutype-training-mode` is derived from `text-mode` (not `special-mode`), with:
+
+- `visual-line-mode` enabled
+- `truncate-lines` disabled
+- `word-wrap` enabled
+- hidden mode line for a minimal HUD-first layout
+
+Input and control mapping:
+
+- `self-insert-command` -> `mutype--dispatch-input`
+- `RET`/`C-m` -> `mutype--dispatch-input`
+- `DEL`/`<backspace>` -> `mutype--backtrack-input`
+- `C-c C-p` pause/resume
+- `C-c C-q` stop
+
+Sequential rule remains strict: typing always consumes the current session index.
+If point has moved, MuType snaps point back to the current training index before
+processing input.
+
+Backtrack rule: `mutype--backtrack-input` moves one step back for retyping and
+restores character faces for that position. Session counters and event history
+remain raw keystroke history (no retroactive metric rewrite).
 
 ## Source Handling
 

@@ -109,6 +109,26 @@ ENTRIES is a list of (FILENAME . TEXT)."
   (should (= (mutype--normalize-input-char ?\r) ?\n))
   (should (= (mutype--normalize-input-char ?a) ?a)))
 
+(ert-deftest mutype-training-mode-uses-text-layout ()
+  (with-temp-buffer
+    (mutype-training-mode)
+    (should (derived-mode-p 'text-mode))
+    (should (null truncate-lines))
+    (should word-wrap)
+    (should (bound-and-true-p visual-line-mode))))
+
+(ert-deftest mutype-training-mode-keymap-remaps-input-and-backtrack ()
+  (with-temp-buffer
+    (mutype-training-mode)
+    (should (eq (lookup-key mutype-training-mode-map [remap self-insert-command])
+                #'mutype--dispatch-input))
+    (should (eq (local-key-binding (kbd "RET")) #'mutype--dispatch-input))
+    (should (eq (local-key-binding (kbd "DEL")) #'mutype--backtrack-input))
+    (should (eq (local-key-binding (kbd "<backspace>")) #'mutype--backtrack-input))
+    (should-not (lookup-key mutype-training-mode-map [t]))
+    (should-not (eq (local-key-binding (kbd "<right>")) #'mutype--dispatch-input))
+    (should-not (eq (local-key-binding (kbd "C-g")) #'mutype-stop))))
+
 (ert-deftest mutype-flow-advances-on-error ()
   "Acceptance: error feedback in flow mode is non-blocking."
   (let ((session (mutype-test--make-session :mode 'flow :text "abc")))
@@ -138,6 +158,78 @@ ENTRIES is a list of (FILENAME . TEXT)."
             (let ((face (get-text-property (point-min) 'face)))
               (should (mutype-test--face-has-p face 'mutype-current-face))
               (should (mutype-test--face-has-p face 'mutype-error-face)))))
+      (mutype-test--cleanup-session session))))
+
+(ert-deftest mutype-dispatch-input-snaps-to-sequential-index ()
+  (let ((session (mutype-test--make-session :mode 'flow :text "abc")))
+    (setq mutype--current-session session)
+    (unwind-protect
+        (progn
+          (mutype--mark-current-char session)
+          (with-current-buffer (mutype-session-buffer session)
+            (goto-char (point-max)))
+          (let ((last-command-event ?a))
+            (mutype--dispatch-input))
+          (should (= (mutype-session-index session) 1))
+          (with-current-buffer (mutype-session-buffer session)
+            (should (= (point) 2))
+            (let ((first-face (get-text-property 1 'face))
+                  (second-face (get-text-property 2 'face)))
+              (should (mutype-test--face-has-p first-face 'mutype-done-face))
+              (should (mutype-test--face-has-p second-face 'mutype-current-face)))))
+      (setq mutype--current-session nil)
+      (mutype-test--cleanup-session session))))
+
+(ert-deftest mutype-backtrack-input-reverts-one-position ()
+  (let ((session (mutype-test--make-session :mode 'flow :text "abc")))
+    (setq mutype--current-session session)
+    (unwind-protect
+        (progn
+          (mutype--mark-current-char session)
+          (mutype--handle-input session ?a)
+          (mutype--handle-input session ?x)
+          (let ((total (mutype-session-total-count session))
+                (correct (mutype-session-correct-count session))
+                (errors (mutype-session-error-count session)))
+            (should (= (mutype-session-index session) 2))
+            (mutype--backtrack-input)
+            (should (= (mutype-session-index session) 1))
+            (should (= (mutype-session-total-count session) total))
+            (should (= (mutype-session-correct-count session) correct))
+            (should (= (mutype-session-error-count session) errors)))
+          (with-current-buffer (mutype-session-buffer session)
+            (should (= (point) 2))
+            (let ((first-face (get-text-property 1 'face))
+                  (second-face (get-text-property 2 'face))
+                  (third-face (get-text-property 3 'face)))
+              (should (mutype-test--face-has-p first-face 'mutype-done-face))
+              (should (mutype-test--face-has-p second-face 'mutype-current-face))
+              (should-not (mutype-test--face-has-p second-face 'mutype-done-face))
+              (should-not (mutype-test--face-has-p second-face 'mutype-error-face))
+              (should (mutype-test--face-has-p third-face 'mutype-pending-face)))))
+      (setq mutype--current-session nil)
+      (mutype-test--cleanup-session session))))
+
+(ert-deftest mutype-backtrack-input-does-nothing-when-paused ()
+  (let ((session (mutype-test--make-session :mode 'flow :text "abc" :state 'paused :index 1)))
+    (setq mutype--current-session session)
+    (unwind-protect
+        (progn
+          (mutype--mark-current-char session)
+          (mutype--backtrack-input)
+          (should (= (mutype-session-index session) 1)))
+      (setq mutype--current-session nil)
+      (mutype-test--cleanup-session session))))
+
+(ert-deftest mutype-backtrack-input-does-nothing-at-beginning ()
+  (let ((session (mutype-test--make-session :mode 'flow :text "abc" :index 0)))
+    (setq mutype--current-session session)
+    (unwind-protect
+        (progn
+          (mutype--mark-current-char session)
+          (mutype--backtrack-input)
+          (should (= (mutype-session-index session) 0)))
+      (setq mutype--current-session nil)
       (mutype-test--cleanup-session session))))
 
 (ert-deftest mutype-mode-starts-with-selected-mode ()

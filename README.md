@@ -29,6 +29,7 @@ It is designed for calm rhythm, low-distraction focus, and steady flow.
   - guidance text
 - Zone scoring from recent error rate and key-interval stability.
 - Session report with accuracy, CPM, interval, and zone metrics.
+- Training buffer is text-mode based with soft wrapping.
 - Text sources:
   - source directory (`sources/*.txt`) only
 
@@ -80,7 +81,13 @@ Then start typing in the `*MuType*` buffer.
 
 - `C-c C-p`: pause/resume
 - `C-c C-q`: stop
-- `C-g`: stop
+- `SPC` / normal character keys: typing input
+- `RET`: typing newline input
+- `DEL` / `<backspace>`: move one position back to retype
+- Arrow keys and standard navigation commands remain available
+
+Typing always follows MuType's sequential training index. If point is moved,
+the next input snaps back to the current training position.
 
 ## Development Guide
 

@@ -153,19 +153,24 @@ When nil, `mutype-mode' starts immediately using defaults."
 
 (defvar mutype-training-mode-map
   (let ((map (make-sparse-keymap)))
-    (define-key map (kbd "C-g") #'mutype-stop)
     (define-key map (kbd "C-c C-q") #'mutype-stop)
     (define-key map (kbd "C-c C-p") #'mutype-toggle-pause)
-    (define-key map [t] #'mutype--dispatch-input)
+    (define-key map [remap self-insert-command] #'mutype--dispatch-input)
+    (define-key map (kbd "RET") #'mutype--dispatch-input)
+    (define-key map (kbd "C-m") #'mutype--dispatch-input)
+    (define-key map (kbd "DEL") #'mutype--backtrack-input)
+    (define-key map (kbd "<backspace>") #'mutype--backtrack-input)
     map)
   "Keymap for `mutype-training-mode`.")
 
-(define-derived-mode mutype-training-mode special-mode "MuType"
+(define-derived-mode mutype-training-mode text-mode "MuType"
   "Major mode for MuType training sessions."
   (setq-local cursor-type nil)
-  (setq-local truncate-lines t)
+  (setq-local truncate-lines nil)
+  (setq-local word-wrap t)
   (setq-local mode-line-format nil)
-  (setq-local buffer-undo-list t))
+  (setq-local buffer-undo-list t)
+  (visual-line-mode 1))
 
 (defun mutype--clamp (value min-value max-value)
   "Clamp VALUE into [MIN-VALUE, MAX-VALUE]."
@@ -369,6 +374,14 @@ When ERROR is non-nil, combine current and error faces."
                 'mutype-current-face)))
     (mutype--set-char-face session (mutype-session-index session) face)))
 
+(defun mutype--goto-index (session)
+  "Move point to SESSION current index in its live buffer."
+  (let ((buffer (mutype-session-buffer session)))
+    (when (buffer-live-p buffer)
+      (with-current-buffer buffer
+        (goto-char (+ (point-min)
+                      (mutype-session-index session)))))))
+
 (defun mutype--update-hud (session)
   "Render HUD for SESSION."
   (let ((buffer (mutype-session-buffer session)))
@@ -473,8 +486,10 @@ When ERROR is non-nil, combine current and error faces."
       (mutype--finish-session session 'finished "Text completed."))
      ((or correct (eq mode 'flow))
       (mutype--mark-current-char session)
+      (mutype--goto-index session)
       (mutype--update-hud session))
      (t
+      (mutype--goto-index session)
       (mutype--update-hud session)))))
 
 (defun mutype--dispatch-input ()
@@ -490,7 +505,27 @@ When ERROR is non-nil, combine current and error faces."
      ((not (characterp event))
       nil)
      (t
+      (mutype--goto-index session)
       (mutype--handle-input session event)))))
+
+(defun mutype--backtrack-input ()
+  "Move one step backward so the previous character can be retyped."
+  (interactive)
+  (let ((session mutype--current-session))
+    (cond
+     ((not (mutype--session-live-p session))
+      (message "No active MuType session."))
+     ((eq (mutype-session-state session) 'paused)
+      (message "Session is paused. Use C-c C-p to resume."))
+     ((<= (mutype-session-index session) 0)
+      (message "Already at the beginning of the text."))
+     (t
+      (let ((old-index (mutype-session-index session)))
+        (setf (mutype-session-index session) (1- old-index))
+        (mutype--set-char-face session old-index 'mutype-pending-face)
+        (mutype--set-char-face session (mutype-session-index session) 'mutype-current-face)
+        (mutype--goto-index session)
+        (mutype--update-hud session))))))
 
 (defun mutype--render-session (session)
   "Render SESSION into the training buffer."
@@ -501,11 +536,11 @@ When ERROR is non-nil, combine current and error faces."
         (erase-buffer)
         (insert text)
         (add-text-properties (point-min) (point-max) '(face mutype-pending-face))
-        (goto-char (point-min))
         (mutype-training-mode))
       (setq-local header-line-format ""))
     (setf (mutype-session-buffer session) buffer)
     (mutype--mark-current-char session)
+    (mutype--goto-index session)
     (mutype--update-hud session)
     (pop-to-buffer buffer)))
 
@@ -669,7 +704,7 @@ SOURCE is a plist with :type, :label, and :text."
     (mutype--render-session session)
     (setf (mutype-session-timer session)
           (run-at-time 0 mutype-hud-refresh-interval #'mutype--tick))
-    (message "MuType started: mode=%s source=%s (C-c C-p pause, C-g stop)"
+    (message "MuType started: mode=%s source=%s (C-c C-p pause, C-c C-q stop)"
              (symbol-name mode)
              (mutype-session-source-label session))))
 
