@@ -30,9 +30,7 @@ It is designed for calm rhythm, low-distraction focus, and steady flow.
 - Zone scoring from recent error rate and key-interval stability.
 - Session report with accuracy, CPM, interval, and zone metrics.
 - Text sources:
-  - built-in text
-  - current buffer
-  - file
+  - source directory (`sources/*.txt`) only
 
 ## Requirements
 
@@ -48,16 +46,30 @@ It is designed for calm rhythm, low-distraction focus, and steady flow.
 
 ## Usage
 
+### Quick Start (Recommended)
+
 1. Run `M-x mutype-mode`.
-2. Choose:
+2. Start typing immediately in the `*MuType*` buffer.
+
+By default, MuType uses:
+
+- `mutype-default-mode`
+- `mutype-default-duration-minutes`
+- `mutype-source-directory` (default: `<repo>/sources`)
+
+### Custom Start
+
+Use `M-x mutype-mode-custom` (or `C-u M-x mutype-mode`) to choose:
+
   - mode (`flow` or `precision`)
   - duration in minutes (`0` means unlimited)
-  - text source (`builtin`, `current-buffer`, or `file`)
-3. Start typing in the `*MuType*` buffer.
+  - source text file from `mutype-source-directory`
+Then start typing in the `*MuType*` buffer.
 
 ### Session Commands
 
 - `M-x mutype-mode`: start a session
+- `M-x mutype-mode-custom`: start with interactive prompts
 - `M-x mutype-stop`: stop current session
 - `M-x mutype-pause`: pause session
 - `M-x mutype-resume`: resume session
@@ -75,6 +87,7 @@ It is designed for calm rhythm, low-distraction focus, and steady flow.
 ### Project Layout
 
 - `mutype.el`: package implementation (state, input, HUD, zone, report)
+- `sources/`: editable training text files (`*.txt`)
 - `test/mutype-test.el`: ERT test suite
 - `docs/IMPLEMENTATION.md`: implementation notes and design mapping
 - `AGENTS.md`: contributor workflow guidelines
@@ -94,6 +107,32 @@ It is designed for calm rhythm, low-distraction focus, and steady flow.
 - Keep internal helpers under `mutype--*`.
 - Keep comments and docs in English.
 - Add ERT tests for behavior changes.
+
+### Useful Customization
+
+Set defaults in your Emacs config:
+
+```elisp
+(setq mutype-default-mode 'flow)
+(setq mutype-default-duration-minutes 15)
+(setq mutype-source-directory "/path/to/mutype/sources")
+(setq mutype-source-file-pattern "*.txt")
+```
+
+### Source Directory
+
+MuType supports editable source files under a directory (default `sources/`).
+
+- File pattern: `*.txt` (configurable with `mutype-source-file-pattern`)
+- Selection rule for quick start: first valid file by filename sort
+- Label rule: filename without extension
+
+Example:
+
+- `sources/001-dickens-tale-of-two-cities-opening.txt`
+- `sources/002-austen-pride-and-prejudice-opening.txt`
+
+To add training content, create a new `.txt` file in the source directory.
 
 ## Acceptance Matrix
 

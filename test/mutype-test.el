@@ -9,6 +9,7 @@
 
 (require 'cl-lib)
 (require 'ert)
+(setq load-prefer-newer t)
 (require 'mutype)
 
 (defun mutype-test--face-has-p (face-value face-symbol)
@@ -28,7 +29,7 @@
      duration-limit
      zone-score
      zone-level
-     (source-type 'builtin)
+     (source-type 'source-directory)
      (source-label "test"))
   "Create a test session with a prepared training buffer."
   (let ((buffer (generate-new-buffer " *mutype-test*")))
@@ -81,6 +82,19 @@
   "Return a valid long text that passes minimum length validation."
   (make-string (+ mutype-minimum-text-length 5) ?x))
 
+(defun mutype-test--write-file (file-path text)
+  "Write TEXT into FILE-PATH."
+  (with-temp-file file-path
+    (insert text)))
+
+(defun mutype-test--make-source-dir (entries)
+  "Create a temp source directory from ENTRIES.
+ENTRIES is a list of (FILENAME . TEXT)."
+  (let ((dir (make-temp-file "mutype-source-dir-" t)))
+    (dolist (entry entries)
+      (mutype-test--write-file (expand-file-name (car entry) dir) (cdr entry)))
+    dir))
+
 (ert-deftest mutype-window-push-truncates ()
   (should (equal (mutype--window-push 4 '(3 2 1) 3) '(4 3 2)))
   (should (equal (mutype--window-push 1 nil 3) '(1))))
@@ -128,7 +142,7 @@
 
 (ert-deftest mutype-mode-starts-with-selected-mode ()
   "Acceptance: mode selection starts a session with expected mode."
-  (let ((source (list :type 'builtin :label "t" :text (mutype-test--long-text))))
+  (let ((source (list :type 'source-directory :label "t" :text (mutype-test--long-text))))
     (setq mutype--current-session nil)
     (unwind-protect
         (mutype-test--without-report-ui
@@ -138,6 +152,48 @@
           (should (eq (mutype-session-state mutype--current-session) 'running))
           (mutype-stop)
           (should (null mutype--current-session)))
+      (when (mutype-session-p mutype--current-session)
+        (mutype-test--cleanup-session mutype--current-session))
+      (setq mutype--current-session nil))))
+
+(ert-deftest mutype-mode-interactive-uses-quick-start-by-default ()
+  (let ((source (list :type 'source-directory :label "quick" :text (mutype-test--long-text)))
+        (called-read nil)
+        (mutype-prompt-on-start nil))
+    (setq mutype--current-session nil)
+    (unwind-protect
+        (mutype-test--without-report-ui
+          (cl-letf (((symbol-function 'mutype--quick-start-args)
+                     (lambda () (list 'flow 0 source)))
+                    ((symbol-function 'mutype--read-start-args)
+                     (lambda ()
+                       (setq called-read t)
+                       (error "should not prompt"))))
+            (call-interactively #'mutype-mode)
+            (should (not called-read))
+            (should (mutype-session-p mutype--current-session))
+            (should (eq (mutype-session-mode mutype--current-session) 'flow))
+            (mutype-stop)))
+      (when (mutype-session-p mutype--current-session)
+        (mutype-test--cleanup-session mutype--current-session))
+      (setq mutype--current-session nil))))
+
+(ert-deftest mutype-mode-custom-uses-interactive-prompts ()
+  (let ((source (list :type 'source-directory :label "custom" :text (mutype-test--long-text)))
+        (called-read nil)
+        (mutype-prompt-on-start nil))
+    (setq mutype--current-session nil)
+    (unwind-protect
+        (mutype-test--without-report-ui
+          (cl-letf (((symbol-function 'mutype--read-start-args)
+                     (lambda ()
+                       (setq called-read t)
+                       (list 'precision 0 source))))
+            (call-interactively #'mutype-mode-custom)
+            (should called-read)
+            (should (mutype-session-p mutype--current-session))
+            (should (eq (mutype-session-mode mutype--current-session) 'precision))
+            (mutype-stop)))
       (when (mutype-session-p mutype--current-session)
         (mutype-test--cleanup-session mutype--current-session))
       (setq mutype--current-session nil))))
@@ -160,25 +216,79 @@
       (mutype-test--cleanup-session session))))
 
 (ert-deftest mutype-source-switching ()
-  "Acceptance: built-in, buffer, and file sources all work."
-  (let* ((builtin-name (caar mutype-builtin-texts))
-         (builtin (mutype--source-from-builtin builtin-name))
-         (buffer (generate-new-buffer " *mutype-source-buffer*"))
-         (temp-file (make-temp-file "mutype-source-" nil ".txt" "file text source")))
+  "Acceptance: source directory loading works."
+  (let ((dir (mutype-test--make-source-dir
+              `(("001-alpha.txt" . ,(mutype-test--long-text))
+                ("002-beta.txt" . ,(concat (mutype-test--long-text) "a"))))))
+    (unwind-protect
+        (let* ((mutype-source-directory dir)
+               (first (mutype--source-from-directory-first))
+               (all (mutype--scan-source-directory)))
+          (should (equal (plist-get first :type) 'source-directory))
+          (should (equal (plist-get first :label) "001-alpha"))
+          (should (= (length all) 2)))
+      (delete-directory dir t))))
+
+(ert-deftest mutype-list-source-files-sorts-by-name ()
+  (let ((dir (mutype-test--make-source-dir
+              '(("002-beta.txt" . "beta")
+                ("001-alpha.txt" . "alpha")))))
+    (unwind-protect
+        (let ((files (mutype--list-source-files dir)))
+          (should (equal (mapcar #'file-name-nondirectory files)
+                         '("001-alpha.txt" "002-beta.txt"))))
+      (delete-directory dir t))))
+
+(ert-deftest mutype-source-from-directory-first-picks-first-file ()
+  (let ((dir (mutype-test--make-source-dir
+              `(("002-beta.txt" . ,(mutype-test--long-text))
+                ("001-alpha.txt" . ,(concat (mutype-test--long-text) "a"))))))
+    (unwind-protect
+        (let* ((mutype-source-directory dir)
+               (source (mutype--source-from-directory-first)))
+          (should (equal (plist-get source :type) 'source-directory))
+          (should (equal (plist-get source :label) "001-alpha")))
+      (delete-directory dir t))))
+
+(ert-deftest mutype-quick-start-args-use-source-directory-first ()
+  (let ((dir (mutype-test--make-source-dir
+              `(("002-second.txt" . ,(mutype-test--long-text))
+                ("001-first.txt" . ,(concat (mutype-test--long-text) "b"))))))
+    (unwind-protect
+        (let* ((mutype-source-directory dir)
+               (args (mutype--quick-start-args))
+               (source (nth 2 args)))
+          (should (equal (plist-get source :label) "001-first")))
+      (delete-directory dir t))))
+
+(ert-deftest mutype-scan-source-directory-error-cases ()
+  (let ((missing-dir (expand-file-name "mutype-does-not-exist" temporary-file-directory))
+        (empty-dir (make-temp-file "mutype-empty-" t))
+        (invalid-dir (mutype-test--make-source-dir '(("001-short.txt" . "tiny")))))
     (unwind-protect
         (progn
-          (with-current-buffer buffer
-            (insert "buffer text source"))
-          (let ((from-buffer (mutype--source-from-buffer buffer))
-                (from-file (mutype--source-from-file temp-file)))
-            (should (equal (plist-get builtin :type) 'builtin))
-            (should (equal (plist-get from-buffer :type) 'buffer))
-            (should (equal (plist-get from-file :type) 'file))
-            (should (string= (plist-get from-buffer :text) "buffer text source"))
-            (should (string= (plist-get from-file :text) "file text source"))))
-      (when (buffer-live-p buffer)
-        (kill-buffer buffer))
-      (delete-file temp-file))))
+          (should-error (mutype--scan-source-directory missing-dir))
+          (should-error (mutype--scan-source-directory empty-dir))
+          (let ((mutype-minimum-text-length 20))
+            (should-error (mutype--scan-source-directory invalid-dir))))
+      (delete-directory empty-dir t)
+      (delete-directory invalid-dir t))))
+
+(ert-deftest mutype-read-source-supports-source-directory-choice ()
+  (let ((dir (mutype-test--make-source-dir
+              `(("001-alpha.txt" . ,(mutype-test--long-text))
+                ("002-beta.txt" . ,(mutype-test--long-text)))))
+        (answers '("001-alpha")))
+    (unwind-protect
+        (let ((mutype-source-directory dir))
+          (cl-letf (((symbol-function 'completing-read)
+                     (lambda (&rest _args)
+                       (prog1 (car answers)
+                         (setq answers (cdr answers))))))
+            (let ((source (mutype--read-source)))
+              (should (equal (plist-get source :type) 'source-directory))
+              (should (equal (plist-get source :label) "001-alpha")))))
+      (delete-directory dir t))))
 
 (ert-deftest mutype-normalize-text-rejects-short-input ()
   (let ((mutype-minimum-text-length 5))

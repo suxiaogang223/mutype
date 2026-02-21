@@ -23,6 +23,8 @@ The package is implemented in pure Emacs Lisp for Emacs 27+.
 ## Session Lifecycle
 
 1. `mutype-mode` creates a session and opens `*MuType*`.
+   - default interactive behavior uses quick-start defaults
+   - use `mutype-mode-custom` (or prefix arg) for full prompts
 2. `mutype--dispatch-input` routes keypresses to `mutype--handle-input`.
 3. `mutype--tick` refreshes HUD and enforces time-limit/buffer-close termination.
 4. `mutype--finish-session` finalizes, cancels timer, builds report, and shows report buffer.
@@ -33,9 +35,28 @@ Pause/resume is implemented by moving `start-time` forward during resume so paus
 
 Sources are normalized into a plist of `:type`, `:label`, `:text`:
 
-- `mutype--source-from-builtin`
-- `mutype--source-from-buffer`
-- `mutype--source-from-file`
+- `mutype--source-from-directory-first`
+
+Directory-backed source loading uses:
+
+- `mutype--list-source-files`
+- `mutype--load-source-file`
+- `mutype--scan-source-directory`
+
+Quick-start source selection is controlled by:
+
+- `mutype-source-directory`
+- `mutype-source-file-pattern`
+
+Default quick-start behavior scans
+`mutype-source-directory` on every session start, sorts files by name, and
+selects the first valid text file.
+
+Failure policy is strict:
+
+- missing directory -> `user-error`
+- no matching files -> `user-error`
+- all files invalid (e.g. too short) -> `user-error`
 
 All source text runs through `mutype--normalize-text` to standardize newlines and enforce minimum length.
 

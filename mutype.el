@@ -15,6 +15,16 @@
 (require 'cl-lib)
 (require 'subr-x)
 
+(defun mutype--default-source-directory ()
+  "Return the default source directory for MuType text files."
+  (let* ((origin (or load-file-name
+                     (and (boundp 'byte-compile-current-file)
+                          byte-compile-current-file)
+                     buffer-file-name
+                     default-directory))
+         (base (file-name-directory origin)))
+    (expand-file-name "sources" base)))
+
 (defgroup mutype nil
   "Minimal typing practice for entering flow."
   :group 'applications
@@ -31,6 +41,22 @@ Supported values are `flow` and `precision`."
   "Default session duration in minutes.
 Set to 0 for unlimited sessions."
   :type 'integer
+  :group 'mutype)
+
+(defcustom mutype-prompt-on-start nil
+  "When non-nil, always prompt for session parameters on start.
+When nil, `mutype-mode' starts immediately using defaults."
+  :type 'boolean
+  :group 'mutype)
+
+(defcustom mutype-source-directory (mutype--default-source-directory)
+  "Directory containing editable MuType source text files."
+  :type 'directory
+  :group 'mutype)
+
+(defcustom mutype-source-file-pattern "*.txt"
+  "Filename pattern used when scanning `mutype-source-directory'."
+  :type 'string
   :group 'mutype)
 
 (defcustom mutype-zone-window-size 30
@@ -88,14 +114,6 @@ Set to 0 for unlimited sessions."
   ["settle in" "steady breath" "keep steady" "deep flow"]
   "HUD guidance text by zone level 0-3."
   :type '(vector string string string string)
-  :group 'mutype)
-
-(defcustom mutype-builtin-texts
-  '(("Quiet Shore" . "Each key falls like a small drop on still water. Keep your hands relaxed, keep your breathing easy, and let attention return to the next character without force.")
-    ("Mountain Path" . "You do not need to rush this line. Walk through it one step at a time, steady and quiet, and allow rhythm to carry the mind into a clear and simple focus."))
-  "Built-in practice texts for interactive source selection."
-  :type '(repeat (cons (string :tag "Title")
-                       (string :tag "Text")))
   :group 'mutype)
 
 (cl-defstruct mutype-session
@@ -200,30 +218,58 @@ Set to 0 for unlimited sessions."
   "Return guidance text for LEVEL."
   (aref mutype-guidance-by-level (mutype--clamp level 0 3)))
 
-(defun mutype--builtin-text-names ()
-  "Return display names for built-in texts."
-  (mapcar #'car mutype-builtin-texts))
+(defun mutype--list-source-files (&optional directory)
+  "Return sorted source file paths from DIRECTORY.
+DIRECTORY defaults to `mutype-source-directory'."
+  (let* ((raw-dir (or directory mutype-source-directory))
+         (source-dir (file-name-as-directory (expand-file-name raw-dir))))
+    (unless (file-directory-p source-dir)
+      (user-error "Source directory does not exist: %s" source-dir))
+    (let* ((regex (wildcard-to-regexp mutype-source-file-pattern))
+           (files (cl-remove-if-not
+                   #'file-regular-p
+                   (directory-files source-dir t regex t)))
+           (sorted (sort files #'string-lessp)))
+      (unless sorted
+        (user-error "No source files found in: %s" source-dir))
+      sorted)))
 
-(defun mutype--source-from-builtin (name)
-  "Return source plist for built-in text NAME."
-  (let ((text (cdr (assoc name mutype-builtin-texts))))
-    (unless text
-      (user-error "Builtin text not found: %s" name))
-    (list :type 'builtin :label name :text text)))
+(defun mutype--source-label-from-path (file-path)
+  "Return display label for FILE-PATH."
+  (file-name-base file-path))
 
-(defun mutype--source-from-buffer (&optional buffer)
-  "Return source plist from BUFFER.
-BUFFER defaults to current buffer."
-  (with-current-buffer (or buffer (current-buffer))
-    (list :type 'buffer
-          :label (buffer-name)
-          :text (buffer-substring-no-properties (point-min) (point-max)))))
+(defun mutype--load-source-file (file-path)
+  "Load FILE-PATH and return a validated source plist."
+  (let ((text (mutype--normalize-text (mutype--read-file-text file-path))))
+    (list :type 'source-directory
+          :label (mutype--source-label-from-path file-path)
+          :text text
+          :path file-path)))
 
-(defun mutype--source-from-file (file-path)
-  "Return source plist from FILE-PATH."
-  (list :type 'file
-        :label (abbreviate-file-name file-path)
-        :text (mutype--read-file-text file-path)))
+(defun mutype--scan-source-directory (&optional directory)
+  "Scan DIRECTORY and return validated source plists.
+DIRECTORY defaults to `mutype-source-directory'."
+  (let ((files (mutype--list-source-files directory))
+        (sources nil))
+    (dolist (file files)
+      (condition-case nil
+          (push (mutype--load-source-file file) sources)
+        (error nil)))
+    (setq sources (nreverse sources))
+    (unless sources
+      (user-error "No valid source text found in: %s"
+                  (expand-file-name (or directory mutype-source-directory))))
+    sources))
+
+(defun mutype--source-from-directory-first (&optional directory)
+  "Return the first valid source from DIRECTORY."
+  (car (mutype--scan-source-directory directory)))
+
+(defun mutype--quick-start-args ()
+  "Return non-interactive startup arguments for quick start."
+  (list mutype-default-mode
+        (or (mutype--default-duration) 0)
+        (mutype--source-from-directory-first)))
 
 (defun mutype--format-clock (seconds)
   "Format SECONDS as MM:SS."
@@ -251,11 +297,9 @@ NOW defaults to current wall clock time."
 
 (defun mutype--read-start-args ()
   "Read interactive arguments for `mutype-mode`."
-  (let ((source-buffer (current-buffer)))
-    (list (mutype--read-mode)
-          (mutype--read-duration)
-          (with-current-buffer source-buffer
-            (mutype--read-source)))))
+  (list (mutype--read-mode)
+        (mutype--read-duration)
+        (mutype--read-source)))
 
 (defun mutype--read-mode ()
   "Prompt for practice mode."
@@ -275,24 +319,15 @@ Return 0 for unlimited duration."
 
 (defun mutype--read-source ()
   "Prompt for text source and return a plist with :type, :label, and :text."
-  (let ((choice (completing-read "Text source: "
-                                 '("builtin" "current-buffer" "file")
-                                 nil t nil nil "builtin")))
-    (pcase choice
-      ("builtin"
-       (unless mutype-builtin-texts
-         (user-error "No built-in texts configured"))
-       (mutype--source-from-builtin
-        (completing-read "Builtin text: "
-                         (mutype--builtin-text-names)
-                         nil t)))
-      ("current-buffer"
-       (mutype--source-from-buffer))
-      ("file"
-       (mutype--source-from-file
-        (read-file-name "Text file: " nil nil t)))
-      (_
-       (user-error "Unsupported text source: %s" choice)))))
+  (let* ((sources (mutype--scan-source-directory))
+         (choices (mapcar (lambda (source)
+                            (cons (plist-get source :label) source))
+                          sources))
+         (name (completing-read "Source text: "
+                                (mapcar #'car choices)
+                                nil t)))
+    (or (cdr (assoc name choices))
+        (user-error "Unknown source text: %s" name))))
 
 (defun mutype--read-file-text (file-path)
   "Read FILE-PATH and return file contents as a string."
@@ -302,9 +337,7 @@ Return 0 for unlimited duration."
 
 (defun mutype--default-source ()
   "Return the default source plist."
-  (unless mutype-builtin-texts
-    (user-error "No built-in texts configured"))
-  (mutype--source-from-builtin (caar mutype-builtin-texts)))
+  (mutype--source-from-directory-first))
 
 (defun mutype--normalize-text (text)
   "Normalize source TEXT and validate minimum length."
@@ -593,7 +626,10 @@ When ERROR is non-nil, combine current and error faces."
 MODE should be `flow` or `precision`.
 DURATION is in seconds, where 0 means unlimited.
 SOURCE is a plist with :type, :label, and :text."
-  (interactive (mutype--read-start-args))
+  (interactive
+   (if (or current-prefix-arg mutype-prompt-on-start)
+       (mutype--read-start-args)
+     (mutype--quick-start-args)))
   (when (mutype--session-live-p mutype--current-session)
     (user-error "A MuType session is already active"))
   (let* ((mode (or mode mutype-default-mode))
@@ -636,6 +672,12 @@ SOURCE is a plist with :type, :label, and :text."
     (message "MuType started: mode=%s source=%s (C-c C-p pause, C-g stop)"
              (symbol-name mode)
              (mutype-session-source-label session))))
+
+;;;###autoload
+(defun mutype-mode-custom ()
+  "Start a MuType session with interactive parameter prompts."
+  (interactive)
+  (apply #'mutype-mode (mutype--read-start-args)))
 
 ;;;###autoload
 (defun mutype-stop ()
