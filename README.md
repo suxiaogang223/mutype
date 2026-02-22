@@ -158,3 +158,7 @@ To add training content, create or edit `.txt` files in the internal source dire
   - `mutype-flow-advances-on-error`
 - Text source switching works:
   - `mutype-source-switching`
+
+## License
+
+MuType is licensed under the MIT License. See [LICENSE](LICENSE) for details.
