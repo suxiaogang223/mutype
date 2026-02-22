@@ -109,6 +109,10 @@ ENTRIES is a list of (FILENAME . TEXT)."
   (should (= (mutype--normalize-input-char ?\r) ?\n))
   (should (= (mutype--normalize-input-char ?a) ?a)))
 
+(ert-deftest mutype-done-face-does-not-inherit-shadow ()
+  (should-not (eq (face-attribute 'mutype-done-face :inherit nil 'default)
+                  'shadow)))
+
 (ert-deftest mutype-training-mode-uses-text-layout ()
   (with-temp-buffer
     (mutype-training-mode)
@@ -299,6 +303,7 @@ ENTRIES is a list of (FILENAME . TEXT)."
   (let* ((session (mutype-test--make-session
                    :state 'paused
                    :text "abcdefghij"
+                   :source-label "chapter-01"
                    :zone-level 2
                    :index 7
                    :start-time (- (float-time) 12)
@@ -315,6 +320,14 @@ ENTRIES is a list of (FILENAME . TEXT)."
               (should (string-match-p "paused" hud))
               (should (string-match-p "p:7/10" hud))
               (should (string-match-p "acc:80\\.0%" hud))
+              (let ((source-pos (string-match "src:chapter-01" hud)))
+                (should source-pos)
+                (should (equal (get-text-property source-pos 'help-echo hud)
+                               "mouse-1: Select source text"))
+                (let ((map (get-text-property source-pos 'local-map hud)))
+                  (should (keymapp map))
+                  (should (eq (lookup-key map [mode-line mouse-1])
+                              #'mutype-select-source))))
               (should (null header-line-format)))))
       (mutype-test--cleanup-session session))))
 
@@ -330,17 +343,26 @@ ENTRIES is a list of (FILENAME . TEXT)."
 (ert-deftest mutype-fit-mode-line-segments-drops-lower-priority-fields ()
   (let ((segments '((core . "● 03:21 paused")
                     (progress . "p:120/800")
-                    (accuracy . "acc:97.3%"))))
+                    (accuracy . "acc:97.3%")
+                    (source . "src:chapter-42"))))
     (should (string-match-p "acc:97\\.3%"
                             (mutype--fit-mode-line-segments segments 80)))
+    (should (string-match-p "src:chapter-42"
+                            (mutype--fit-mode-line-segments segments 80)))
+    (let ((without-source (mutype--fit-mode-line-segments segments 36)))
+      (should (string-match-p "acc:97\\.3%" without-source))
+      (should (string-match-p "p:120/800" without-source))
+      (should-not (string-match-p "src:chapter-42" without-source)))
     (let ((compact (mutype--fit-mode-line-segments segments 26)))
       (should (string-match-p "p:120/800" compact))
-      (should-not (string-match-p "acc:97\\.3%" compact)))
+      (should-not (string-match-p "acc:97\\.3%" compact))
+      (should-not (string-match-p "src:chapter-42" compact)))
     (let ((minimal (mutype--fit-mode-line-segments segments 13)))
       (should (string-match-p "03:21" minimal))
       (should (string-match-p "paused" minimal))
       (should-not (string-match-p "p:120/800" minimal))
-      (should-not (string-match-p "acc:97\\.3%" minimal)))))
+      (should-not (string-match-p "acc:97\\.3%" minimal))
+      (should-not (string-match-p "src:chapter-42" minimal)))))
 
 (ert-deftest mutype-source-switching ()
   "Acceptance: source directory loading works."
@@ -466,6 +488,63 @@ ENTRIES is a list of (FILENAME . TEXT)."
           (should (equal (nth 0 captured) mutype-default-mode))
           (should (= (nth 1 captured) (or (mutype--default-duration) 0)))
           (should (equal (plist-get (nth 2 captured) :label) "003-gamma")))
+      (delete-directory dir t))))
+
+(ert-deftest mutype-select-source-switches-running-session ()
+  (let ((dir (mutype-test--make-source-dir
+              `(("001-alpha.txt" . ,(mutype-test--long-text))
+                ("002-beta.txt" . ,(mutype-test--long-text)))))
+        (captured nil)
+        (answers '("002-beta")))
+    (unwind-protect
+        (let* ((mutype-source-directory dir)
+               (session (mutype-test--make-session
+                         :mode 'precision
+                         :state 'running
+                         :text "abcde"
+                         :source-type 'source-directory
+                         :source-label "001-alpha"
+                         :duration-limit 75)))
+          (setq mutype--current-session session)
+          (cl-letf (((symbol-function 'completing-read)
+                     (lambda (&rest _args)
+                       (prog1 (car answers)
+                         (setq answers (cdr answers)))))
+                    ((symbol-function 'mutype-mode)
+                     (lambda (mode duration source)
+                       (setq captured (list mode duration source))))
+                    ((symbol-function 'mutype-stop)
+                     (lambda ()
+                       (setq mutype--current-session nil))))
+            (mutype-select-source))
+          (should (equal (nth 0 captured) 'precision))
+          (should (= (nth 1 captured) 75))
+          (should (equal (plist-get (nth 2 captured) :label) "002-beta"))
+          (mutype-test--cleanup-session session)
+          (setq mutype--current-session nil))
+      (delete-directory dir t))))
+
+(ert-deftest mutype-select-source-uses-defaults-when-inactive ()
+  (let ((dir (mutype-test--make-source-dir
+              `(("001-alpha.txt" . ,(mutype-test--long-text))
+                ("002-beta.txt" . ,(mutype-test--long-text)))))
+        (captured nil)
+        (answers '("001-alpha")))
+    (unwind-protect
+        (let ((mutype-source-directory dir)
+              (mutype--current-session nil)
+              (mutype--last-report nil))
+          (cl-letf (((symbol-function 'completing-read)
+                     (lambda (&rest _args)
+                       (prog1 (car answers)
+                         (setq answers (cdr answers)))))
+                    ((symbol-function 'mutype-mode)
+                     (lambda (mode duration source)
+                       (setq captured (list mode duration source)))))
+            (mutype-select-source))
+          (should (equal (nth 0 captured) mutype-default-mode))
+          (should (= (nth 1 captured) (or (mutype--default-duration) 0)))
+          (should (equal (plist-get (nth 2 captured) :label) "001-alpha")))
       (delete-directory dir t))))
 
 (ert-deftest mutype-normalize-text-rejects-short-input ()

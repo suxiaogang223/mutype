@@ -58,6 +58,11 @@ Backtrack rule: `mutype--backtrack-input` moves one step back for retyping and
 restores character faces for that position. Session counters and event history
 remain raw keystroke history (no retroactive metric rewrite).
 
+Completed text contrast:
+
+- `mutype-done-face` uses black foreground on light backgrounds
+- `mutype-done-face` falls back to default foreground on dark backgrounds
+
 ## Mode Line Status Rendering
 
 MuType renders training HUD information in `mode-line-format` only. `header-line-format`
@@ -70,12 +75,14 @@ Rendered fields:
 - state (`running`/`paused`)
 - progress (`index/length`)
 - accuracy (`correct/total`; `--` when `total=0`)
+- source label (`src:<name>`, clickable with mouse-1)
 
 Narrow-window fallback is priority-based:
 
-1. drop `accuracy`
-2. then drop `progress`
-3. keep `zone + timer + state` as minimum
+1. drop `source`
+2. then drop `accuracy`
+3. then drop `progress`
+4. keep `zone + timer + state` as minimum
 
 Implementation helpers:
 
@@ -83,6 +90,7 @@ Implementation helpers:
 - `mutype--fit-mode-line-segments`
 - `mutype--format-accuracy`
 - `mutype--render-mode-line`
+- `mutype--mode-line-source-segment`
 
 ## Source Handling
 
@@ -127,6 +135,7 @@ Public source navigation commands:
 
 - `mutype-next-source`
 - `mutype-prev-source`
+- `mutype-select-source`
 
 ## Zone Algorithm
 

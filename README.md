@@ -28,6 +28,8 @@ It is designed for calm rhythm, low-distraction focus, and steady flow.
   - timer
   - running/paused state
   - progress and accuracy
+  - current source label (clickable for source selection)
+- Completed text uses high contrast (light theme: black foreground).
 - Zone scoring from recent error rate and key-interval stability.
 - Session report with accuracy, CPM, interval, and zone metrics.
 - Training buffer is text-mode based with soft wrapping.
@@ -72,6 +74,7 @@ Then start typing in the `*MuType*` buffer.
 
 - `M-x mutype-mode`: start a session
 - `M-x mutype-mode-custom`: start with interactive prompts
+- `M-x mutype-select-source`: choose source text and restart session
 - `M-x mutype-stop`: stop current session
 - `M-x mutype-pause`: pause session
 - `M-x mutype-resume`: resume session
@@ -90,6 +93,7 @@ Then start typing in the `*MuType*` buffer.
 - `RET`: typing newline input
 - `DEL` / `<backspace>`: move one position back to retype
 - Arrow keys and standard navigation commands remain available
+- Click the `src:<name>` segment in mode line to pick another source chapter
 
 Typing always follows MuType's sequential training index. If point is moved,
 the next input snaps back to the current training position.

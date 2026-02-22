@@ -86,7 +86,11 @@ When nil, `mutype-mode' starts immediately using defaults."
   :group 'mutype)
 
 (defface mutype-done-face
-  '((t :inherit shadow :strike-through nil))
+  '((((class color) (background light))
+     :foreground "black" :strike-through nil)
+    (((class color) (background dark))
+     :inherit default :strike-through nil)
+    (t :inherit default :strike-through nil))
   "Face for completed characters."
   :group 'mutype)
 
@@ -149,6 +153,12 @@ When nil, `mutype-mode' starts immediately using defaults."
 
 (defvar-local mutype--mode-line-status ""
   "Cached MuType status string rendered in mode line.")
+
+(defvar mutype--mode-line-source-map
+  (let ((map (make-sparse-keymap)))
+    (define-key map [mode-line mouse-1] #'mutype-select-source)
+    map)
+  "Keymap for clickable source segment in MuType mode line.")
 
 (defvar mutype-training-mode-map
   (let ((map (make-sparse-keymap)))
@@ -374,6 +384,13 @@ Return 0 for unlimited duration."
 
 (defun mutype--switch-source (step)
   "Switch source by STEP and start a new session."
+  (let* ((sources (mutype--scan-source-directory))
+         (current-label (mutype--source-label-for-navigation))
+         (source (mutype--adjacent-source sources current-label step)))
+    (mutype--switch-to-source source)))
+
+(defun mutype--switch-to-source (source)
+  "Switch to SOURCE and start a new session."
   (let* ((session mutype--current-session)
          (live (mutype--session-live-p session))
          (mode (if live
@@ -381,10 +398,7 @@ Return 0 for unlimited duration."
                  mutype-default-mode))
          (duration (if live
                        (or (mutype-session-duration-limit session) 0)
-                     (or (mutype--default-duration) 0)))
-         (sources (mutype--scan-source-directory))
-         (current-label (mutype--source-label-for-navigation))
-         (source (mutype--adjacent-source sources current-label step)))
+                     (or (mutype--default-duration) 0))))
     (when live
       ;; Skip report popup during source navigation; keep metrics in memory.
       (cl-letf (((symbol-function 'mutype--show-report)
@@ -436,6 +450,13 @@ When ERROR is non-nil, combine current and error faces."
       (format "%.1f%%" (* 100.0 (/ (float correct) total)))
     "--"))
 
+(defun mutype--mode-line-source-segment (label)
+  "Return clickable mode line segment for source LABEL."
+  (propertize (format "src:%s" label)
+              'help-echo "mouse-1: Select source text"
+              'mouse-face 'mode-line-highlight
+              'local-map mutype--mode-line-source-map))
+
 (defun mutype--build-mode-line-segments (session)
   "Return an alist of mode line segments for SESSION."
   (let* ((elapsed (mutype--session-elapsed session))
@@ -453,28 +474,36 @@ When ERROR is non-nil, combine current and error faces."
          (accuracy (format "acc:%s"
                            (mutype--format-accuracy
                             (mutype-session-correct-count session)
-                            (mutype-session-total-count session)))))
+                            (mutype-session-total-count session))))
+         (source (mutype--mode-line-source-segment
+                  (mutype-session-source-label session))))
     `((core . ,(format "%s %s %s"
                        (mutype--zone-symbol (mutype-session-zone-level session))
                        time-str
                        status))
       (progress . ,progress)
-      (accuracy . ,accuracy))))
+      (accuracy . ,accuracy)
+      (source . ,source))))
 
 (defun mutype--fit-mode-line-segments (segments max-width)
   "Fit SEGMENTS into MAX-WIDTH using priority-based fallback."
   (let* ((core (alist-get 'core segments))
          (progress (alist-get 'progress segments))
          (accuracy (alist-get 'accuracy segments))
-         (parts (delq nil (list core progress accuracy)))
+         (source (alist-get 'source segments))
+         (parts (delq nil (list core progress accuracy source)))
          (line (string-join parts "  ")))
     (when (> (string-width line) max-width)
+      (setq source nil
+            parts (delq nil (list core progress accuracy source))
+            line (string-join parts "  ")))
+    (when (> (string-width line) max-width)
       (setq accuracy nil
-            parts (delq nil (list core progress accuracy))
+            parts (delq nil (list core progress accuracy source))
             line (string-join parts "  ")))
     (when (> (string-width line) max-width)
       (setq progress nil
-            parts (delq nil (list core progress accuracy))
+            parts (delq nil (list core progress accuracy source))
             line (string-join parts "  ")))
     (if (> (string-width line) max-width)
         core
@@ -806,6 +835,23 @@ SOURCE is a plist with :type, :label, and :text."
   "Start a MuType session with interactive parameter prompts."
   (interactive)
   (apply #'mutype-mode (mutype--read-start-args)))
+
+;;;###autoload
+(defun mutype-select-source ()
+  "Select a source text from fixed source directory and switch session."
+  (interactive)
+  (let* ((sources (mutype--scan-source-directory))
+         (choices (mapcar (lambda (source)
+                            (cons (plist-get source :label) source))
+                          sources))
+         (current-label (mutype--source-label-for-navigation))
+         (name (completing-read "Source text: "
+                                (mapcar #'car choices)
+                                nil t nil nil
+                                current-label))
+         (source (or (cdr (assoc name choices))
+                     (user-error "Unknown source text: %s" name))))
+    (mutype--switch-to-source source)))
 
 ;;;###autoload
 (defun mutype-next-source ()
