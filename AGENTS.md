@@ -20,7 +20,7 @@ Run load and test commands before opening a PR.
 
 ## Coding Style & Naming Conventions
 
-- Language: Emacs Lisp (target Emacs 27+), `lexical-binding` enabled.
+- Language: Emacs Lisp (target Emacs 25.1+), `lexical-binding` enabled.
 - Indentation: follow standard Emacs Lisp style (2-space indentation, aligned forms).
 - Naming:
   - Public symbols: `mutype-*`

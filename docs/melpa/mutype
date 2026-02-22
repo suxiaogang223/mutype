@@ -1,0 +1,7 @@
+;; MELPA recipe (rolling) for MuType.
+;;
+;; Submit this file as `recipes/mutype` in the melpa/melpa repository.
+
+(mutype :fetcher github
+        :repo "suxiaogang223/mutype"
+        :files (:defaults "sources/*.txt"))

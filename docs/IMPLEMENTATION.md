@@ -7,7 +7,7 @@ MuType provides a low-distraction typing practice loop in Emacs with two modes:
 - `flow`: continue on mistakes
 - `precision`: block on mistakes
 
-The package is implemented in pure Emacs Lisp for Emacs 27+.
+The package is implemented in pure Emacs Lisp for Emacs 25.1+.
 
 ## Core Data Model
 

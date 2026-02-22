@@ -1,14 +1,27 @@
-;;; mutype.el --- Type into stillness -*- lexical-binding: t; -*-
+;;; mutype.el --- Type into stillness -*- lexical-binding: t; coding: utf-8; -*-
 
 ;; Author: MuType contributors
+;; URL: https://github.com/suxiaogang223/mutype
 ;; Version: 0.1.0
-;; Package-Requires: ((emacs "27.1"))
+;; Package-Requires: ((emacs "25.1"))
 ;; Keywords: convenience, typing
 
 ;;; Commentary:
 
-;; MuType is a minimal typing practice plugin for Emacs.
-;; Start a session with `M-x mutype-mode`.
+;; MuType is a minimal typing practice loop for Emacs, designed for calm rhythm,
+;; low-distraction focus, and steady flow (not a speed competition).
+;;
+;; Start a session with `M-x mutype-mode`. Use `C-u M-x mutype-mode` (or
+;; `M-x mutype-mode-custom`) to choose practice mode, duration, and source text.
+;;
+;; During a session:
+;; - `C-c C-p` toggles pause/resume
+;; - `C-c C-q` stops the session
+;; - `C-c C-n` / `C-c C-b` switches source text
+;; - `M-x mutype-report-last-session` reopens the last report
+;;
+;; Source texts are bundled as plain .txt files under the package's "sources/"
+;; directory.
 
 ;;; Code:
 
@@ -220,6 +233,8 @@ When nil, `mutype-mode' starts immediately using defaults."
                         (length numbers))))
       (sqrt variance))))
 
+;;; Zone scoring
+
 (defun mutype--zone-level-from-score (score)
   "Map SCORE in [0,1] to a zone level in [0,3]."
   (cond
@@ -235,6 +250,8 @@ When nil, `mutype-mode' starts immediately using defaults."
 (defun mutype--guidance-text (level)
   "Return guidance text for LEVEL."
   (aref mutype-guidance-by-level (mutype--clamp level 0 3)))
+
+;;; Source handling
 
 (defun mutype--list-source-files (&optional directory)
   "Return sorted source file paths from DIRECTORY.
@@ -443,6 +460,8 @@ When ERROR is non-nil, combine current and error faces."
       (with-current-buffer buffer
         (goto-char (+ (point-min)
                       (mutype-session-index session)))))))
+
+;;; HUD / mode line
 
 (defun mutype--format-accuracy (correct total)
   "Format accuracy from CORRECT and TOTAL counts."
@@ -673,6 +692,8 @@ When ERROR is non-nil, combine current and error faces."
       (cancel-timer timer)
       (setf (mutype-session-timer session) nil))))
 
+;;; Reporting
+
 (defun mutype--build-report (session reason)
   "Build a report plist from SESSION with REASON."
   (let* ((start (mutype-session-start-time session))
@@ -779,10 +800,14 @@ When ERROR is non-nil, combine current and error faces."
 
 ;;;###autoload
 (defun mutype-mode (&optional mode duration source)
-  "Start a MuType session.
-MODE should be `flow` or `precision`.
-DURATION is in seconds, where 0 means unlimited.
-SOURCE is a plist with :type, :label, and :text."
+  "Start a MuType session in the `*MuType*' training buffer.
+
+Interactively, start immediately using defaults. With a prefix argument (or
+when `mutype-prompt-on-start' is non-nil), prompt for practice mode, duration,
+and source text.
+
+MODE should be `flow' or `precision'. DURATION is in seconds, where 0 means
+unlimited. SOURCE is a plist with :type, :label, and :text."
   (interactive
    (if (or current-prefix-arg mutype-prompt-on-start)
        (mutype--read-start-args)
@@ -838,7 +863,10 @@ SOURCE is a plist with :type, :label, and :text."
 
 ;;;###autoload
 (defun mutype-select-source ()
-  "Select a source text from fixed source directory and switch session."
+  "Select a bundled source text and restart the session.
+
+When a session is active, keep the current mode and duration. When no session
+is active, start a new session using defaults."
   (interactive)
   (let* ((sources (mutype--scan-source-directory))
          (choices (mapcar (lambda (source)
@@ -920,7 +948,9 @@ SOURCE is a plist with :type, :label, and :text."
 
 ;;;###autoload
 (defun mutype-report-last-session ()
-  "Show the latest MuType session report."
+  "Show the latest MuType session report buffer.
+
+A report is produced when a session finishes or is stopped."
   (interactive)
   (if mutype--last-report
       (mutype--show-report mutype--last-report)
