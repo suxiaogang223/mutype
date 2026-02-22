@@ -49,15 +49,11 @@ When nil, `mutype-mode' starts immediately using defaults."
   :type 'boolean
   :group 'mutype)
 
-(defcustom mutype-source-directory (mutype--default-source-directory)
-  "Directory containing editable MuType source text files."
-  :type 'directory
-  :group 'mutype)
+(defvar mutype-source-directory (mutype--default-source-directory)
+  "Internal source directory containing MuType text files.")
 
-(defcustom mutype-source-file-pattern "*.txt"
-  "Filename pattern used when scanning `mutype-source-directory'."
-  :type 'string
-  :group 'mutype)
+(defconst mutype-source-file-pattern "*.txt"
+  "Filename pattern used when scanning `mutype-source-directory'.")
 
 (defcustom mutype-zone-window-size 30
   "Number of recent keystrokes used for zone scoring."
@@ -158,6 +154,8 @@ When nil, `mutype-mode' starts immediately using defaults."
   (let ((map (make-sparse-keymap)))
     (define-key map (kbd "C-c C-q") #'mutype-stop)
     (define-key map (kbd "C-c C-p") #'mutype-toggle-pause)
+    (define-key map (kbd "C-c C-n") #'mutype-next-source)
+    (define-key map (kbd "C-c C-b") #'mutype-prev-source)
     (define-key map [remap self-insert-command] #'mutype--dispatch-input)
     (define-key map (kbd "RET") #'mutype--dispatch-input)
     (define-key map (kbd "C-m") #'mutype--dispatch-input)
@@ -275,6 +273,19 @@ DIRECTORY defaults to `mutype-source-directory'."
   "Return the first valid source from DIRECTORY."
   (car (mutype--scan-source-directory directory)))
 
+(defun mutype--source-index-by-label (sources label)
+  "Return zero-based index of LABEL in SOURCES, or nil when missing."
+  (cl-position label sources :key (lambda (source)
+                                    (plist-get source :label))
+               :test #'string=))
+
+(defun mutype--adjacent-source (sources current-label step)
+  "Return adjacent source from SOURCES around CURRENT-LABEL by STEP."
+  (let* ((count (length sources))
+         (index (or (mutype--source-index-by-label sources current-label) 0))
+         (next-index (mod (+ index step) count)))
+    (nth next-index sources)))
+
 (defun mutype--quick-start-args ()
   "Return non-interactive startup arguments for quick start."
   (list mutype-default-mode
@@ -348,6 +359,38 @@ Return 0 for unlimited duration."
 (defun mutype--default-source ()
   "Return the default source plist."
   (mutype--source-from-directory-first))
+
+(defun mutype--source-label-for-navigation ()
+  "Return the current source label for next/previous navigation."
+  (cond
+   ((and (mutype--session-live-p mutype--current-session)
+         (eq (mutype-session-source-type mutype--current-session) 'source-directory))
+    (mutype-session-source-label mutype--current-session))
+   ((and (listp mutype--last-report)
+         (eq (plist-get mutype--last-report :source-type) 'source-directory))
+    (plist-get mutype--last-report :source-label))
+   (t
+    (plist-get (mutype--source-from-directory-first) :label))))
+
+(defun mutype--switch-source (step)
+  "Switch source by STEP and start a new session."
+  (let* ((session mutype--current-session)
+         (live (mutype--session-live-p session))
+         (mode (if live
+                   (mutype-session-mode session)
+                 mutype-default-mode))
+         (duration (if live
+                       (or (mutype-session-duration-limit session) 0)
+                     (or (mutype--default-duration) 0)))
+         (sources (mutype--scan-source-directory))
+         (current-label (mutype--source-label-for-navigation))
+         (source (mutype--adjacent-source sources current-label step)))
+    (when live
+      ;; Skip report popup during source navigation; keep metrics in memory.
+      (cl-letf (((symbol-function 'mutype--show-report)
+                 (lambda (_report) nil)))
+        (mutype-stop)))
+    (mutype-mode mode duration source)))
 
 (defun mutype--normalize-text (text)
   "Normalize source TEXT and validate minimum length."
@@ -763,6 +806,18 @@ SOURCE is a plist with :type, :label, and :text."
   "Start a MuType session with interactive parameter prompts."
   (interactive)
   (apply #'mutype-mode (mutype--read-start-args)))
+
+;;;###autoload
+(defun mutype-next-source ()
+  "Switch to the next source text by filename order."
+  (interactive)
+  (mutype--switch-source 1))
+
+;;;###autoload
+(defun mutype-prev-source ()
+  "Switch to the previous source text by filename order."
+  (interactive)
+  (mutype--switch-source -1))
 
 ;;;###autoload
 (defun mutype-stop ()

@@ -124,6 +124,8 @@ ENTRIES is a list of (FILENAME . TEXT)."
     (mutype-training-mode)
     (should (eq (lookup-key mutype-training-mode-map [remap self-insert-command])
                 #'mutype--dispatch-input))
+    (should (eq (local-key-binding (kbd "C-c C-n")) #'mutype-next-source))
+    (should (eq (local-key-binding (kbd "C-c C-b")) #'mutype-prev-source))
     (should (eq (local-key-binding (kbd "RET")) #'mutype--dispatch-input))
     (should (eq (local-key-binding (kbd "DEL")) #'mutype--backtrack-input))
     (should (eq (local-key-binding (kbd "<backspace>")) #'mutype--backtrack-input))
@@ -413,6 +415,57 @@ ENTRIES is a list of (FILENAME . TEXT)."
             (let ((source (mutype--read-source)))
               (should (equal (plist-get source :type) 'source-directory))
               (should (equal (plist-get source :label) "001-alpha")))))
+      (delete-directory dir t))))
+
+(ert-deftest mutype-next-source-switches-and-wraps ()
+  (let ((dir (mutype-test--make-source-dir
+              `(("001-alpha.txt" . ,(mutype-test--long-text))
+                ("002-beta.txt" . ,(mutype-test--long-text))
+                ("003-gamma.txt" . ,(mutype-test--long-text)))))
+        (captured nil))
+    (unwind-protect
+        (let* ((mutype-source-directory dir)
+               (session (mutype-test--make-session
+                         :mode 'precision
+                         :state 'running
+                         :text "abcde"
+                         :source-type 'source-directory
+                         :source-label "003-gamma"
+                         :duration-limit 90)))
+          (setq mutype--current-session session)
+          (cl-letf (((symbol-function 'mutype-mode)
+                     (lambda (mode duration source)
+                       (setq captured (list mode duration source))))
+                    ((symbol-function 'mutype-stop)
+                     (lambda ()
+                       (setq mutype--current-session nil))))
+            (mutype-next-source))
+          (should (equal (nth 0 captured) 'precision))
+          (should (= (nth 1 captured) 90))
+          (should (equal (plist-get (nth 2 captured) :label) "001-alpha"))
+          (mutype-test--cleanup-session session)
+          (setq mutype--current-session nil))
+      (delete-directory dir t))))
+
+(ert-deftest mutype-prev-source-uses-last-report-when-inactive ()
+  (let ((dir (mutype-test--make-source-dir
+              `(("001-alpha.txt" . ,(mutype-test--long-text))
+                ("002-beta.txt" . ,(mutype-test--long-text))
+                ("003-gamma.txt" . ,(mutype-test--long-text)))))
+        (captured nil))
+    (unwind-protect
+        (let ((mutype-source-directory dir)
+              (mutype--current-session nil)
+              (mutype--last-report
+               (list :source-type 'source-directory
+                     :source-label "001-alpha")))
+          (cl-letf (((symbol-function 'mutype-mode)
+                     (lambda (mode duration source)
+                       (setq captured (list mode duration source)))))
+            (mutype-prev-source))
+          (should (equal (nth 0 captured) mutype-default-mode))
+          (should (= (nth 1 captured) (or (mutype--default-duration) 0)))
+          (should (equal (plist-get (nth 2 captured) :label) "003-gamma")))
       (delete-directory dir t))))
 
 (ert-deftest mutype-normalize-text-rejects-short-input ()

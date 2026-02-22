@@ -57,7 +57,7 @@ By default, MuType uses:
 
 - `mutype-default-mode`
 - `mutype-default-duration-minutes`
-- `mutype-source-directory` (default: `<repo>/sources`)
+- internal source directory (`sources/`)
 
 ### Custom Start
 
@@ -65,7 +65,7 @@ Use `M-x mutype-mode-custom` (or `C-u M-x mutype-mode`) to choose:
 
   - mode (`flow` or `precision`)
   - duration in minutes (`0` means unlimited)
-  - source text file from `mutype-source-directory`
+  - source text file from internal `sources/`
 Then start typing in the `*MuType*` buffer.
 
 ### Session Commands
@@ -76,12 +76,16 @@ Then start typing in the `*MuType*` buffer.
 - `M-x mutype-pause`: pause session
 - `M-x mutype-resume`: resume session
 - `M-x mutype-toggle-pause`: toggle pause/resume
+- `M-x mutype-next-source`: switch to next source text and restart session
+- `M-x mutype-prev-source`: switch to previous source text and restart session
 - `M-x mutype-report-last-session`: open last report
 
 ### Training Buffer Keys
 
 - `C-c C-p`: pause/resume
 - `C-c C-q`: stop
+- `C-c C-n`: switch to next source text
+- `C-c C-b`: switch to previous source text
 - `SPC` / normal character keys: typing input
 - `RET`: typing newline input
 - `DEL` / `<backspace>`: move one position back to retype
@@ -123,15 +127,13 @@ Set defaults in your Emacs config:
 ```elisp
 (setq mutype-default-mode 'flow)
 (setq mutype-default-duration-minutes 15)
-(setq mutype-source-directory "/path/to/mutype/sources")
-(setq mutype-source-file-pattern "*.txt")
 ```
 
 ### Source Directory
 
-MuType supports editable source files under a directory (default `sources/`).
+MuType always reads source files from its internal `sources/` directory.
 
-- File pattern: `*.txt` (configurable with `mutype-source-file-pattern`)
+- File pattern: `*.txt`
 - Selection rule for quick start: first valid file by filename sort
 - Label rule: filename without extension
 
@@ -140,7 +142,7 @@ Example:
 - `sources/001-dickens-tale-of-two-cities-opening.txt`
 - `sources/002-austen-pride-and-prejudice-opening.txt`
 
-To add training content, create a new `.txt` file in the source directory.
+To add training content, create or edit `.txt` files in the internal source directory.
 
 ## Acceptance Matrix
 

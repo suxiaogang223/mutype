@@ -47,6 +47,8 @@ Input and control mapping:
 - `DEL`/`<backspace>` -> `mutype--backtrack-input`
 - `C-c C-p` pause/resume
 - `C-c C-q` stop
+- `C-c C-n` switch to next source text and restart
+- `C-c C-b` switch to previous source text and restart
 
 Sequential rule remains strict: typing always consumes the current session index.
 If point has moved, MuType snaps point back to the current training index before
@@ -94,7 +96,7 @@ Directory-backed source loading uses:
 - `mutype--load-source-file`
 - `mutype--scan-source-directory`
 
-Quick-start source selection is controlled by:
+Quick-start source selection is controlled by internal constants/variables:
 
 - `mutype-source-directory`
 - `mutype-source-file-pattern`
@@ -103,6 +105,9 @@ Default quick-start behavior scans
 `mutype-source-directory` on every session start, sorts files by name, and
 selects the first valid text file.
 
+Source directory selection is intentionally not exposed in interactive commands.
+Users customize source content by editing files inside the fixed directory.
+
 Failure policy is strict:
 
 - missing directory -> `user-error`
@@ -110,6 +115,18 @@ Failure policy is strict:
 - all files invalid (e.g. too short) -> `user-error`
 
 All source text runs through `mutype--normalize-text` to standardize newlines and enforce minimum length.
+
+Source navigation helpers:
+
+- `mutype--source-index-by-label`
+- `mutype--adjacent-source`
+- `mutype--source-label-for-navigation`
+- `mutype--switch-source`
+
+Public source navigation commands:
+
+- `mutype-next-source`
+- `mutype-prev-source`
 
 ## Zone Algorithm
 
