@@ -11,7 +11,7 @@
 ;; MuType is a minimal typing practice loop for Emacs, designed for calm rhythm,
 ;; low-distraction focus, and steady flow (not a speed competition).
 ;;
-;; Start a session with `M-x mutype-mode`. Use `C-u M-x mutype-mode` (or
+;; Start a session with `M-x mutype-mode`.  Use `C-u M-x mutype-mode` (or
 ;; `M-x mutype-mode-custom`) to choose practice mode, duration, and source text.
 ;;
 ;; During a session:
@@ -585,7 +585,11 @@ When ERROR is non-nil, combine current and error faces."
   (if (= char ?\r) ?\n char))
 
 (defun mutype--record-event (session index expected actual correct interval timestamp)
-  "Record one typing event into SESSION."
+  "Record one typing event into SESSION.
+
+INDEX is the zero-based character index.  EXPECTED and ACTUAL are the expected
+and typed characters.  CORRECT is non-nil when input matched.  INTERVAL is the
+elapsed seconds since the previous input event.  TIMESTAMP is a float time."
   (setf (mutype-session-events session)
         (cons (list :index index
                     :expected expected
@@ -802,12 +806,12 @@ When ERROR is non-nil, combine current and error faces."
 (defun mutype-mode (&optional mode duration source)
   "Start a MuType session in the `*MuType*' training buffer.
 
-Interactively, start immediately using defaults. With a prefix argument (or
+Interactively, start immediately using defaults.  With a prefix argument (or
 when `mutype-prompt-on-start' is non-nil), prompt for practice mode, duration,
 and source text.
 
-MODE should be `flow' or `precision'. DURATION is in seconds, where 0 means
-unlimited. SOURCE is a plist with :type, :label, and :text."
+MODE should be `flow' or `precision'.  DURATION is in seconds, where 0 means
+unlimited.  SOURCE is a plist with :type, :label, and :text."
   (interactive
    (if (or current-prefix-arg mutype-prompt-on-start)
        (mutype--read-start-args)
@@ -857,7 +861,7 @@ unlimited. SOURCE is a plist with :type, :label, and :text."
 
 ;;;###autoload
 (defun mutype-mode-custom ()
-  "Start a MuType session with interactive parameter prompts."
+  "Prompt for session parameters and start a MuType session."
   (interactive)
   (apply #'mutype-mode (mutype--read-start-args)))
 
@@ -865,7 +869,7 @@ unlimited. SOURCE is a plist with :type, :label, and :text."
 (defun mutype-select-source ()
   "Select a bundled source text and restart the session.
 
-When a session is active, keep the current mode and duration. When no session
+When a session is active, keep the current mode and duration.  When no session
 is active, start a new session using defaults."
   (interactive)
   (let* ((sources (mutype--scan-source-directory))
