@@ -1,7 +1,7 @@
 # MuType
 
 MuType is a minimal typing practice loop for Emacs. It is designed for calm rhythm,
-low-distraction focus, and steady flow (not a speed competition).
+low-distraction focus, and steady flow.
 
 ![MuType session](docs/screenshots/mutype-session.png)
 

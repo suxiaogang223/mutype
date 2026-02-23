@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+
+    <title data-i18n="page_title">MuType — calm typing practice for Emacs</title>
+    <meta
+      name="description"
+      content="MuType is a minimal typing practice loop for Emacs. Calm rhythm, low distraction, steady flow."
+      data-i18n-content="page_description"
+    />
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="MuType" data-i18n-content="og_title" />
+    <meta
+      property="og:description"
+      content="MuType is a minimal typing practice loop for Emacs."
+      data-i18n-content="og_description"
+    />
+
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="assets/style.css" />
+    <script>
+      (() => {
+        try {
+          const theme = window.localStorage.getItem("mutype:theme");
+          if (theme === "light" || theme === "dark") {
+            document.documentElement.setAttribute("data-theme", theme);
+          }
+        } catch (e) {
+          // Ignore (private mode / disabled storage).
+        }
+      })();
+    </script>
+    <script src="assets/app.js" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#content" data-i18n="skip_to_content">
+      Skip to content
+    </a>
+
+    <header class="header-line" role="banner">
+      <div class="header-line__left">
+        <span class="buffer-name">*MuType*</span>
+        <span class="header-sep">—</span>
+        <span class="header-hint" data-i18n="header_hint">
+          Type into stillness — minimal typing practice loop for Emacs
+        </span>
+      </div>
+      <div class="header-line__right" aria-label="Controls">
+        <button class="toggle-btn" id="theme-toggle" type="button">Theme: …</button>
+        <button class="toggle-btn" id="lang-toggle" type="button">Lang: …</button>
+      </div>
+    </header>
+
+    <main id="content" class="buffer" role="main">
+      <section class="hero" id="top">
+        <h1 class="hero__title">MuType</h1>
+        <figure class="epigraph" aria-label="Epigraph">
+          <blockquote
+            class="epigraph__quote"
+            data-i18n="epigraph_quote"
+            data-i18n-html
+          >
+            <p>菩提本无树，</p>
+            <p>明镜亦非台；</p>
+            <p>本来无一物，</p>
+            <p>何处惹尘埃？</p>
+          </blockquote>
+          <figcaption class="epigraph__caption">
+            <span class="epigraph__author" data-i18n="epigraph_author"
+              >六祖慧能</span
+            >
+            <span class="epigraph__translation" data-i18n="epigraph_translation"
+              >“Originally there is not a single thing—where could dust
+              alight?”</span
+            >
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="section section--intro" id="intro">
+        <h2 data-i18n="intro_title">What is MuType?</h2>
+        <p class="hero__subtitle" data-i18n="hero_subtitle">
+          Type into stillness. Calm rhythm. Low distraction. Steady flow.
+        </p>
+
+        <div class="hero__meta">
+          <span data-i18n="hero_meta_emacs">Emacs 25.1+</span>
+          <span class="dot">•</span>
+          <span data-i18n="hero_meta_deps">No external runtime deps</span>
+          <span class="dot">•</span>
+          <span data-i18n="hero_meta_license">MIT</span>
+        </div>
+
+        <div class="hero__actions">
+          <a class="btn" href="#install" data-i18n="cta_install">Install</a>
+          <a class="btn btn--ghost" href="#demo" data-i18n="cta_demo">See demo</a>
+        </div>
+
+        <h3 data-i18n="name_title">Name: Mu (無)</h3>
+        <p data-i18n="name_body_1">
+          MuType can be read as “type into stillness”. The “Mu” comes from the
+          Chinese character “無” (simplified: “无”).
+        </p>
+        <p data-i18n="name_body_2">
+          In Chan/Zen, “mu” points to letting go of rigid judgments and
+          returning to a clear, unforced mind.
+        </p>
+        <p data-i18n="name_body_3">
+          MuType uses this as a reminder: focus on the current character, keep a
+          calm rhythm, and let mistakes pass.
+        </p>
+      </section>
+
+      <section class="section" id="demo">
+        <h2 data-i18n="demo_title">Demo</h2>
+        <figure class="screenshot">
+          <img
+            src="screenshots/mutype-session.png"
+            alt="Screenshot of a MuType session in Emacs"
+            loading="lazy"
+            data-i18n-alt="demo_alt"
+          />
+          <figcaption data-i18n="demo_caption" data-i18n-html>
+            A MuType session in <code>*MuType*</code>.
+          </figcaption>
+        </figure>
+      </section>
+
+      <section class="section" id="features">
+        <h2 data-i18n="features_title">Features</h2>
+        <ul class="feature-list">
+          <li data-i18n="feature_1">Two modes: flow and precision.</li>
+          <li data-i18n="feature_2">
+            HUD in the mode line: timer, progress, accuracy, zone.
+          </li>
+          <li data-i18n="feature_3" data-i18n-html>
+            Plain-text sources bundled in <code>sources/*.txt</code>.
+          </li>
+          <li data-i18n="feature_4">Report buffer at session end.</li>
+          <li data-i18n="feature_5">Zero external dependencies.</li>
+        </ul>
+      </section>
+
+      <section class="section" id="install">
+        <h2 data-i18n="install_title">Install</h2>
+
+        <h3 data-i18n="install_melpa_title">MELPA (recommended)</h3>
+        <p data-i18n="install_melpa_note">
+          Once MuType is available on MELPA, install with:
+        </p>
+        <pre><code>M-x package-install RET mutype RET</code></pre>
+        <p data-i18n="install_melpa_enable">If you don't have MELPA enabled:</p>
+        <pre><code class="language-elisp">(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+(package-initialize)</code></pre>
+
+        <h3 data-i18n="install_manual_title">Manual (load-path)</h3>
+        <pre><code class="language-elisp">(add-to-list 'load-path "/path/to/mutype")
+(require 'mutype)</code></pre>
+
+        <h3 data-i18n="install_straight_title">straight.el (optional)</h3>
+        <pre><code class="language-elisp">(use-package mutype
+  :straight (mutype :type git :host github :repo "suxiaogang223/mutype")
+  :commands (mutype-mode mutype-mode-custom))</code></pre>
+      </section>
+
+      <section class="section" id="start">
+        <h2 data-i18n="start_title">Start</h2>
+        <p>
+          <span data-i18n="start_run_prefix">Run</span>
+          <code>M-x mutype-mode</code>
+          <span data-i18n="start_run_suffix" data-i18n-html
+            >to jump into <code>*MuType*</code> and start typing.</span
+          >
+        </p>
+        <p>
+          <span data-i18n="start_custom_prefix">To choose mode/duration/source, use</span>
+          <code>C-u M-x mutype-mode</code>
+          <span data-i18n="start_custom_mid">or</span>
+          <code>M-x mutype-mode-custom</code>.
+        </p>
+
+        <div class="callout">
+          <div class="callout__title" data-i18n="modes_title">Modes</div>
+          <ul class="modes">
+            <li>
+              <code>flow</code> —
+              <span data-i18n="mode_flow">mistakes do not block progress.</span>
+            </li>
+            <li>
+              <code>precision</code> —
+              <span data-i18n="mode_precision"
+                >you must type the correct character to advance.</span
+              >
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section" id="session">
+        <h2 data-i18n="session_title">During a session</h2>
+        <p data-i18n="session_hud_intro">
+          The MuType HUD lives in the mode line and shows:
+        </p>
+        <ul class="hud-list">
+          <li data-i18n="hud_1" data-i18n-html>
+            zone symbol (<code>·</code>, <code>:</code>, <code>*</code>,
+            <code>●</code>)
+          </li>
+          <li data-i18n="hud_2" data-i18n-html>
+            timer and state (<code>running</code>/<code>paused</code>)
+          </li>
+          <li data-i18n="hud_3" data-i18n-html>
+            progress, accuracy, and current source label (clickable)
+          </li>
+        </ul>
+
+        <h3 data-i18n="keys_title">Common keys and commands</h3>
+        <table class="key-table">
+          <thead>
+            <tr>
+              <th scope="col" data-i18n="table_key">Key / Command</th>
+              <th scope="col" data-i18n="table_action">Action</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><kbd>C-c C-p</kbd></td>
+              <td data-i18n="action_pause">Pause/resume</td>
+            </tr>
+            <tr>
+              <td><kbd>C-c C-q</kbd></td>
+              <td data-i18n="action_stop">Stop session</td>
+            </tr>
+            <tr>
+              <td><kbd>C-c C-n</kbd></td>
+              <td data-i18n="action_next">Next source (restart)</td>
+            </tr>
+            <tr>
+              <td><kbd>C-c C-b</kbd></td>
+              <td data-i18n="action_prev">Previous source (restart)</td>
+            </tr>
+            <tr>
+              <td><code>M-x mutype-select-source</code></td>
+              <td data-i18n="action_pick">Pick a source (restart)</td>
+            </tr>
+            <tr>
+              <td><code>M-x mutype-report-last-session</code></td>
+              <td data-i18n="action_report">Open the last report</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p data-i18n="session_snapback">
+          Typing follows MuType's sequential index. If point is moved, input
+          snaps back to the current training position.
+        </p>
+      </section>
+
+      <section class="section" id="sources">
+        <h2 data-i18n="sources_title">Text sources</h2>
+        <p data-i18n="sources_body_1" data-i18n-html>
+          MuType intentionally reads plain text from the bundled
+          <code>sources/*.txt</code> directory.
+        </p>
+        <p data-i18n="sources_body_2" data-i18n-html>
+          To add or tweak training text, edit or add <code>.txt</code> files
+          under <code>sources/</code>. Since this directory is part of the
+          installed package, upgrades may overwrite local changes—keep a copy of
+          your custom texts.
+        </p>
+      </section>
+
+      <section class="section" id="customization">
+        <h2 data-i18n="custom_title">Customization</h2>
+        <p data-i18n="custom_body">Put something like this in your init file:</p>
+        <pre><code class="language-elisp">(setq mutype-default-mode 'flow
+      mutype-default-duration-minutes 15
+      mutype-enable-guidance-text t
+      mutype-prompt-on-start nil)</code></pre>
+      </section>
+
+      <section class="section" id="report">
+        <h2 data-i18n="report_title">Report</h2>
+        <p>
+          <span data-i18n="report_body_1"
+            >MuType shows a report buffer when you stop a session or when the
+            time limit is reached.</span
+          >
+          <span data-i18n="report_body_2">Reopen the last report with</span>
+          <code>M-x mutype-report-last-session</code>.
+        </p>
+      </section>
+
+      <section class="section" id="links">
+        <h2 data-i18n="links_title">Links</h2>
+        <ul class="link-list">
+          <li>
+            <a
+              href="https://github.com/suxiaogang223/mutype"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              GitHub
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/suxiaogang223/mutype/issues"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Issues
+            </a>
+          </li>
+          <li>
+            <a
+              href="https://github.com/suxiaogang223/mutype/blob/main/LICENSE"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-i18n="link_license"
+              >License (MIT)</a
+            >
+          </li>
+        </ul>
+      </section>
+    </main>
+
+    <footer class="emacs-bars" id="emacs-bars" role="contentinfo">
+      <div class="mode-line">
+        <div class="mode-line__left" aria-label="Buffer status">
+          <span class="ml-buffer">*MuType*</span>
+          <span class="ml-sep">|</span>
+          <span class="ml-major" data-i18n="ml_major">MuType-Web</span>
+        </div>
+        <div class="mode-line__right" aria-label="Reading status">
+          <span class="ml-zone" id="mode-line-zone" aria-hidden="true">·</span>
+          <span class="ml-section" id="mode-line-section">MuType</span>
+          <span class="ml-sep">|</span>
+          <span class="ml-position" id="mode-line-position">Top</span>
+        </div>
+      </div>
+
+      <div class="minibuffer" aria-live="polite" aria-atomic="true">
+        <span class="minibuffer__prompt">M-x</span>
+        <span class="minibuffer__message">
+          <span id="minibuffer-default" data-i18n="minibuffer_default"
+            >mutype-mode</span
+          >
+          <span id="minibuffer-flash" hidden></span>
+        </span>
+        <span class="minibuffer__suffix">RET</span>
+      </div>
+    </footer>
+  </body>
+</html>
