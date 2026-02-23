@@ -1,11 +1,30 @@
 # MuType
 
-MuType is a minimal typing practice loop for Emacs. It is designed for calm rhythm,
-low-distraction focus, and steady flow.
+Type into stillness. Calm rhythm. Low distraction. Steady flow.
+
+[中文说明](README.zh-CN.md)
 
 ![MuType session](docs/screenshots/mutype-session.png)
 
-Requirements: Emacs 25.1+ (no external runtime dependencies).
+- Requirements: Emacs 25.1+
+- Runtime deps: none
+- License: MIT
+
+## What is MuType?
+
+MuType is a minimal typing practice loop for Emacs. It aims to keep you in a calm,
+steady rhythm: focus on the current character and keep moving.
+
+MuType provides two practice modes:
+
+- `flow`: mistakes do not block progress.
+- `precision`: you must type the correct character to advance.
+
+## Features
+
+- HUD in the mode line: timer, progress, accuracy, and zone (`·`, `:`, `*`, `●`).
+- Plain-text sources bundled in `sources/*.txt`.
+- Report buffer at session end.
 
 ## Install
 
@@ -40,17 +59,10 @@ If you don't have MELPA enabled:
 
 ## Start
 
-Run `M-x mutype-mode` to jump into `*MuType*` and start typing.
+- `M-x mutype-mode` starts quickly with defaults.
+- `C-u M-x mutype-mode` or `M-x mutype-mode-custom` lets you pick mode/duration/source.
 
-To choose mode, duration, and text source, use `C-u M-x mutype-mode` or
-`M-x mutype-mode-custom`.
-
-Modes:
-
-- `flow`: mistakes do not block progress.
-- `precision`: you must type the correct character to advance.
-
-## During a Session
+## During a session
 
 The MuType HUD lives in the mode line and shows:
 
@@ -72,14 +84,14 @@ Common keys and commands:
 Typing always follows MuType's sequential index. If point is moved, input snaps
 back to the current training position.
 
-## Text Sources
+## Text sources
 
 MuType intentionally reads plain text from the bundled `sources/*.txt` directory
 inside the package.
 
 To add or tweak training text, edit or add `.txt` files under `sources/`. Since
 this directory is part of the installed package, upgrades may overwrite local
-changes. Keep a copy of your custom texts if you maintain your own set.
+changes—keep a copy of your custom texts.
 
 ## Customization
 
@@ -97,20 +109,30 @@ Put something like this in your init file:
 MuType shows a report buffer when you stop a session or when the time limit is
 reached. Reopen the last report with `M-x mutype-report-last-session`.
 
-## Development
+## Name: Mu (無)
 
-Implementation notes live in `docs/IMPLEMENTATION.md`.
+“Mu” comes from the Chinese character “無” (simplified: “无”), literally
+“not / without”.
+
+In Chan/Zen, “mu” points to letting go of rigid judgments and returning to a clear,
+unforced mind. MuType uses this as a reminder: focus on the current character, keep
+a calm rhythm, and let mistakes pass.
+
+> 菩提本无树，  
+> 明镜亦非台；  
+> 本来无一物，  
+> 何处惹尘埃？  
+>
+> — Huineng  
+> “Originally there is not a single thing—where could dust alight?”
+
+## Development (optional)
 
 Useful commands:
 
 - Load check: `emacs --batch -Q -L . --eval "(progn (load \"mutype.el\") (message \"ok\"))"`
 - Byte compile: `emacs --batch -Q --eval "(byte-compile-file \"mutype.el\")"`
 - Tests: `emacs --batch -Q -L . -L test -l test/mutype-test.el -f ert-run-tests-batch-and-exit`
-
-## Name
-
-MuType means "type into stillness". The name emphasizes attention to the current
-character, not speed competition.
 
 ## License
 
