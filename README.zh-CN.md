@@ -2,15 +2,21 @@
 
 通过打字进入“无”的境界。平静节奏、低干扰、稳定流畅。
 
-[English](README.md)
-
-![MuType session](docs/screenshots/mutype-session.png)
-
-- 需求：Emacs 25.1+
-- 运行时依赖：无
-- 许可证：MIT
+[![English](https://img.shields.io/badge/README-English-blue)](README.md) ![Requires: Emacs 25.1+](https://img.shields.io/badge/Requires-Emacs%2025.1%2B-7F5AB6) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 ## MuType 是什么？
+
+> 菩提本无树，  
+> 明镜亦非台；  
+> 本来无一物，  
+> 何处惹尘埃？  
+>
+> — 六祖慧能
+
+MuType 中的 “Mu” 源于中文“无/無”，常见含义是“没有/不”。
+
+在禅宗语境中，“无”不只是“没有”，更是指向放下分别与执著，回到当下的清明。MuType 用这个名字提醒自己：
+专注于当前字符，保持平静节奏，让错误自然过去。
 
 MuType 是一个极简的 Emacs 打字练习插件，帮助你保持平静而稳定的节奏：专注于当前字符，持续推进。
 
@@ -18,6 +24,10 @@ MuType 提供两种练习模式：
 
 - `flow`：错误不会阻塞前进。
 - `precision`：必须输入正确字符才会前进。
+
+## 演示
+
+![MuType session](docs/screenshots/mutype-session.png)
 
 ## 特性
 
@@ -105,20 +115,6 @@ MuType 只读取包内自带的纯文本目录 `sources/*.txt`。
 结束练习或达到时间上限时，MuType 会打开报告缓冲区。可用 `M-x mutype-report-last-session` 重新打开
 上一次报告。
 
-## 名字：Mu（无/無）
-
-“Mu” 源于中文“无/無”，常见含义是“没有/不”。
-
-在禅宗语境中，“无”不只是“没有”，更是指向放下分别与执著，回到当下的清明。MuType 用这个名字提醒自己：
-专注于当前字符，保持平静节奏，让错误自然过去。
-
-> 菩提本无树，  
-> 明镜亦非台；  
-> 本来无一物，  
-> 何处惹尘埃？  
->
-> — 六祖慧能
-
 ## 开发（可选）
 
 常用命令：
@@ -130,4 +126,3 @@ MuType 只读取包内自带的纯文本目录 `sources/*.txt`。
 ## 许可证
 
 MuType 使用 MIT 许可证。详见 [LICENSE](LICENSE)。
-

@@ -37,6 +37,7 @@ Run load and test commands before opening a PR.
 
 ## Commit & Pull Request Guidelines
 
+- Do not run `git commit` (or `git push`) unless the user explicitly confirms.
 - Use imperative commit messages, consistent with existing history (example: `Initialize MuType MVP`).
 - Keep one logical change per commit.
 - PRs should include:

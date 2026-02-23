@@ -2,15 +2,24 @@
 
 Type into stillness. Calm rhythm. Low distraction. Steady flow.
 
-[中文说明](README.zh-CN.md)
-
-![MuType session](docs/screenshots/mutype-session.png)
-
-- Requirements: Emacs 25.1+
-- Runtime deps: none
-- License: MIT
+[![中文说明](https://img.shields.io/badge/README-中文-blue)](README.zh-CN.md) ![Requires: Emacs 25.1+](https://img.shields.io/badge/Requires-Emacs%2025.1%2B-7F5AB6) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](LICENSE)
 
 ## What is MuType?
+
+> 菩提本无树，  
+> 明镜亦非台；  
+> 本来无一物，  
+> 何处惹尘埃？  
+>
+> — Huineng  
+> “Originally there is not a single thing—where could dust alight?”
+
+The name “MuType” can be read as “type into stillness”. “Mu” comes from the Chinese
+character “無” (simplified: “无”), literally “not / without”.
+
+In Chan/Zen, “mu” points to letting go of rigid judgments and returning to a clear,
+unforced mind. MuType uses this as a reminder: focus on the current character, keep
+a calm rhythm, and let mistakes pass.
 
 MuType is a minimal typing practice loop for Emacs. It aims to keep you in a calm,
 steady rhythm: focus on the current character and keep moving.
@@ -19,6 +28,10 @@ MuType provides two practice modes:
 
 - `flow`: mistakes do not block progress.
 - `precision`: you must type the correct character to advance.
+
+## Demo
+
+![MuType session](docs/screenshots/mutype-session.png)
 
 ## Features
 
@@ -108,23 +121,6 @@ Put something like this in your init file:
 
 MuType shows a report buffer when you stop a session or when the time limit is
 reached. Reopen the last report with `M-x mutype-report-last-session`.
-
-## Name: Mu (無)
-
-“Mu” comes from the Chinese character “無” (simplified: “无”), literally
-“not / without”.
-
-In Chan/Zen, “mu” points to letting go of rigid judgments and returning to a clear,
-unforced mind. MuType uses this as a reminder: focus on the current character, keep
-a calm rhythm, and let mistakes pass.
-
-> 菩提本无树，  
-> 明镜亦非台；  
-> 本来无一物，  
-> 何处惹尘埃？  
->
-> — Huineng  
-> “Originally there is not a single thing—where could dust alight?”
 
 ## Development (optional)
 
