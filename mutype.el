@@ -1,6 +1,8 @@
 ;;; mutype.el --- Type into stillness -*- lexical-binding: t; coding: utf-8; -*-
 
-;; Author: MuType contributors
+;; Copyright (C) 2025-2026 Xiaogang Su
+;; SPDX-License-Identifier: MIT
+;; Author: Xiaogang Su <https://github.com/suxiaogang223>
 ;; URL: https://github.com/suxiaogang223/mutype
 ;; Version: 0.1.0
 ;; Package-Requires: ((emacs "25.1"))
@@ -718,7 +720,7 @@ elapsed seconds since the previous input event.  TIMESTAMP is a float time."
          (zone-history (mutype-session-zone-history session))
          (zone-average (if zone-history (mutype--mean zone-history) 0.0))
          (zone-peak (if zone-history (apply #'max zone-history) 0))
-         (timestamp (format-time-string "%Y-%m-%d %H:%M:%S"
+         (timestamp (format-time-string "%F %T"
                                         (seconds-to-time end))))
     (list :timestamp timestamp
           :state (mutype-session-state session)
