@@ -1,0 +1,44 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        emacs_version:
+          - '25.1'
+          - '26.3'
+          - '27.2'
+          - '28.2'
+          - '29.1'
+          - 'snapshot'
+
+    steps:
+    - uses: actions/checkout@v3
+
+    - uses: purcell/setup-emacs@master
+      with:
+        version: ${{ matrix.emacs_version }}
+
+    - name: Install dependencies
+      run: |
+        emacs --batch -Q --eval "(progn (require 'package) (add-to-list 'package-archives '(\"melpa\" . \"https://melpa.org/packages/\") t) (package-initialize) (package-refresh-contents) (package-install 'package-lint))"
+
+    - name: Compile
+      run: make compile
+
+    - name: Test
+      run: make test
+
+    - name: Lint
+      run: |
+        # Run checkdoc directly
+        emacs --batch -Q -L . --eval "(checkdoc-file \"mutype.el\")"
+        # Run package-lint
+        emacs --batch -Q -L . -l package-lint -f package-lint-batch-and-exit mutype.el
