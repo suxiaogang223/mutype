@@ -1,0 +1,10 @@
+def fibonacci(n):
+    """Return the nth Fibonacci number."""
+    a, b = 0, 1
+    for _ in range(n):
+        yield a
+        a, b = b, a + b
+
+if __name__ == "__main__":
+    for i, val in enumerate(fibonacci(10)):
+        print(f"Fib({i}) = {val}")

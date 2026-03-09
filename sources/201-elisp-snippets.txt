@@ -1,0 +1,10 @@
+(defun hello-world (name)
+  "Say hello to NAME."
+  (interactive "sEnter name: ")
+  (message "Hello, %s!" name))
+
+(defun factorial (n)
+  "Return the factorial of N."
+  (if (<= n 1)
+      1
+    (* n (factorial (1- n)))))

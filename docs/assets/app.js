@@ -40,7 +40,7 @@ const I18N = {
     features_title: "Features",
     feature_1: "Two modes: flow and precision.",
     feature_2: "HUD in the mode line: timer, progress, accuracy, zone.",
-    feature_3: "Plain-text sources bundled in <code>sources/*.txt</code>.",
+    feature_3: "Diverse sources: classic literature, Chinese treasures, and code snippets.",
     feature_4: "Report buffer at session end.",
     feature_5: "Zero external dependencies.",
 
@@ -151,7 +151,7 @@ const I18N = {
     features_title: "特性",
     feature_1: "两种模式：flow 与 precision。",
     feature_2: "HUD 在 mode line：计时、进度、准确率、分区。",
-    feature_3: "自带纯文本来源：<code>sources/*.txt</code>。",
+    feature_3: "多元练习素材：经典文学、中华瑰宝、编程实战。",
     feature_4: "结束自动生成报告缓冲区。",
     feature_5: "无外部运行时依赖。",
 
