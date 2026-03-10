@@ -37,8 +37,4 @@ jobs:
       run: make test
 
     - name: Lint
-      run: |
-        # Run checkdoc directly
-        emacs --batch -Q -L . --eval "(checkdoc-file \"mutype.el\")"
-        # Run package-lint
-        emacs --batch -Q -L . -l package-lint -f package-lint-batch-and-exit mutype.el
+      run: make lint

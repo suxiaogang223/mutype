@@ -2,6 +2,7 @@
 
 EMACS ?= emacs
 BATCH = $(EMACS) -Q --batch -L .
+PACKAGE_INIT = (progn (require 'package) (package-initialize))
 
 ELS = mutype.el
 ELCS = $(ELS:.el=.elc)
@@ -25,7 +26,7 @@ lint:
 	@echo "Running checkdoc..."
 	@$(BATCH) --eval "(checkdoc-file \"mutype.el\")"
 	@echo "Running package-lint..."
-	@$(BATCH) -l package-lint -f package-lint-batch-and-exit $(ELS) || echo "Note: package-lint requires the 'package-lint' package to be installed."
+	@$(BATCH) --eval "$(PACKAGE_INIT)" -l package-lint -f package-lint-batch-and-exit $(ELS)
 
 clean:
 	@echo "Cleaning up..."
