@@ -169,6 +169,9 @@ When nil, `mutype-mode' starts immediately using defaults."
 (defvar-local mutype--mode-line-status ""
   "Cached MuType status string rendered in mode line.")
 
+(defconst mutype--hidden-mode-line-width 80
+  "Fallback mode line width used when the training buffer is not displayed.")
+
 (defvar mutype--mode-line-source-map
   (let ((map (make-sparse-keymap)))
     (define-key map [mode-line mouse-1] #'mutype-select-source)
@@ -530,14 +533,18 @@ When ERROR is non-nil, combine current and error faces."
         core
       line)))
 
+(defun mutype--mode-line-width (buffer)
+  "Return a stable rendering width for BUFFER's mode line."
+  (let ((window (get-buffer-window buffer t)))
+    (if (window-live-p window)
+        (max 10 (window-total-width window))
+      mutype--hidden-mode-line-width)))
+
 (defun mutype--render-mode-line (session)
   "Render SESSION status into training buffer mode line."
   (let ((buffer (mutype-session-buffer session)))
     (when (buffer-live-p buffer)
-      (let* ((window (get-buffer-window buffer t))
-             (width (if (window-live-p window)
-                        (window-total-width window)
-                      (frame-width)))
+      (let* ((width (mutype--mode-line-width buffer))
              (segments (mutype--build-mode-line-segments session))
              (line (mutype--fit-mode-line-segments segments (max 10 width))))
         (with-current-buffer buffer
